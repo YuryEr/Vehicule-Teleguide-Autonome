@@ -1,5 +1,3 @@
-# GITHUB TEST 12345
-
 import time
 
 from arduino.app_utils import App
