@@ -2,26 +2,29 @@
 
 ## Vue d'ensemble
 
-Ce guide explique comment configurer Git sur l'Arduino UNO Q et sur votre PC pour travailler en équipe. Le principe est simple : on édite le code sur PC avec VS Code, on push sur GitHub, et on pull sur le board pour tester dans Arduino App Lab.
+Ce guide explique comment configurer Git sur l'Arduino UNO Q et sur votre PC pour travailler en équipe. Le principe est simple : on édite le code sur PC avec VS Code, on push sur GitHub via GitHub Desktop, et on pull sur le board pour tester dans Arduino App Lab.
 
 ```
-VS Code (PC) → git push → GitHub → git pull → Arduino UNO Q (App Lab)
+VS Code (PC) → GitHub Desktop → GitHub → git pull → Arduino UNO Q (App Lab)
 ```
+
+Ce guide est divisé en deux parties indépendantes :
+
+- **Partie A** — Configuration de l'Arduino UNO Q (pour tester sur le véhicule)
+- **Partie B** — Configuration du PC (pour éditer le code)
+
+Vous pouvez suivre l'une sans avoir lu l'autre.
 
 ---
 
-## Prérequis
+## Prérequis communs
 
 - Un compte GitHub (demander à Yury de vous ajouter comme collaborateur sur le repo)
-- Git installé sur votre PC ([git-scm.com](https://git-scm.com/) sur Windows)
-- Arduino App Lab installé
-- Accès au terminal SSH du Arduino UNO Q (via le terminal intégré dans App Lab)
+- Arduino App Lab installé (pour le board)
 
----
+### Créer votre Personal Access Token GitHub
 
-## Partie 1 — Créer votre Personal Access Token GitHub
-
-GitHub n'accepte plus les mots de passe en ligne de commande. Il faut créer un token.
+GitHub n'accepte plus les mots de passe en ligne de commande. Il faut créer un token. **Ce token est nécessaire uniquement pour l'Arduino UNO Q.** GitHub Desktop gère l'authentification automatiquement sur PC.
 
 1. Aller sur [github.com](https://github.com)
 2. Cliquer sur votre **photo de profil** (en haut à droite) → **Settings**
@@ -34,73 +37,26 @@ GitHub n'accepte plus les mots de passe en ligne de commande. Il faut créer un 
 9. Cliquer **Generate token** en bas de la page
 10. **COPIER LE TOKEN IMMÉDIATEMENT** — il commence par `ghp_...` et GitHub ne le montrera plus jamais après avoir quitté la page
 
-> **Important :** Gardez ce token quelque part de sécuritaire (gestionnaire de mots de passe, note privée). Vous en aurez besoin pour l'authentification Git.
+> **Important :** Gardez ce token quelque part de sécuritaire (gestionnaire de mots de passe, note privée). Vous en aurez besoin pour l'authentification sur l'Arduino.
 
 ---
 
-## Partie 2 — Configuration sur votre PC (VS Code)
-
-### 2.1 Installer Git
-
-Téléchargez et installez Git depuis [git-scm.com](https://git-scm.com/). Pendant l'installation, gardez les options par défaut.
-
-### 2.2 Cloner le repo
-
-Ouvrez un terminal (PowerShell, CMD, ou le terminal VS Code avec `Ctrl+ù`) :
-
-```bash
-cd C:\Dev
-git clone https://github.com/YuryEr/ELE795-TankETS.git
-cd ELE795-TankETS
-```
-
-> **⚠️ Ne pas cloner dans un dossier OneDrive.** OneDrive synchronise les fichiers en arrière-plan et peut corrompre le dossier `.git/`. Le code est déjà sauvegardé sur GitHub, vous n'avez pas besoin de OneDrive en plus. Utilisez un dossier comme `C:\Dev\` ou `C:\Projets\`.
-
-Quand Git demande l'authentification :
-- **Username :** votre nom d'utilisateur GitHub
-- **Password :** votre Personal Access Token (pas votre mot de passe GitHub)
-
-### 2.3 Configurer votre identité Git
-
-```bash
-git config --global user.name "Votre Nom"
-git config --global user.email "votre.email@ets.ca"
-```
-
-### 2.4 Sauvegarder le token pour ne pas le retaper
-
-```bash
-git config --global credential.helper store
-```
-
-La prochaine fois que vous entrez votre token, il sera sauvegardé. Plus besoin de le retaper après ça.
-
-### 2.5 Ouvrir le projet dans VS Code
-
-```
-File → Open Folder → C:\Dev\ELE795-TankETS
-```
-
-Vous pouvez maintenant éditer les fichiers directement dans VS Code.
-
----
-
-## Partie 3 — Configuration sur l'Arduino UNO Q
+# PARTIE A — Arduino UNO Q (board)
 
 > **⚠️ Avant de commencer :** Si vous utilisez le Arduino UNO Q qui est déjà monté sur le véhicule, il est très probable que Git soit déjà configuré dessus. **Vérifiez d'abord** en ouvrant le terminal App Lab et en tapant :
 > ```bash
 > cd /home/arduino/ArduinoApps/tankets_ele795
 > git status
 > ```
-> Si ça affiche quelque chose comme `On branch main, nothing to commit`, tout est déjà en place. Vous pouvez sauter directement à la **Partie 4 — Workflow quotidien**. Les étapes ci-dessous sont uniquement pour configurer un board neuf ou réinitialisé.
+> Si ça affiche quelque chose comme `On branch main, nothing to commit`, tout est déjà en place. Vous pouvez sauter directement à la section **Workflow sur le board**.
 >
 > **Note :** Même si Git est déjà configuré, le token d'authentification sauvegardé est celui de la personne qui a fait le setup initial. Si vous devez faire des `git push` depuis le board (rare — normalement on push depuis le PC), vous devrez entrer votre propre token.
 
-### 3.1 Ouvrir le terminal
+### A.1 Ouvrir le terminal
 
 Dans Arduino App Lab, ouvrez le terminal intégré (c'est un terminal SSH vers le board).
 
-### 3.2 Vérifier que Git est installé
+### A.2 Vérifier que Git est installé
 
 ```bash
 git --version
@@ -112,28 +68,22 @@ Si ça affiche une version (ex: `git version 2.47.3`), c'est bon. Sinon :
 sudo apt update && sudo apt install git -y
 ```
 
-### 3.3 Configurer votre identité
+### A.3 Configurer votre identité
 
 ```bash
 git config --global user.name "Votre Nom"
 git config --global user.email "votre.email@ets.ca"
 ```
 
-### 3.4 Sauvegarder le token
+### A.4 Sauvegarder le token pour ne pas le retaper
 
 ```bash
 git config --global credential.helper store
 ```
 
-### 3.5 Se déplacer dans le dossier du projet
+### A.5 Configurer le terminal pour ouvrir directement dans le projet
 
-À chaque ouverture du terminal App Lab, vous repartez dans le dossier home (`~`). Il faut se déplacer dans le dossier du projet :
-
-```bash
-cd /home/arduino/ArduinoApps/tankets_ele795
-```
-
-Pour ne plus avoir à le taper à chaque fois, exécutez cette commande **une seule fois** :
+À chaque ouverture du terminal App Lab, vous repartez dans le dossier home (`~`). Exécutez cette commande **une seule fois** pour régler ça :
 
 ```bash
 echo 'cd /home/arduino/ArduinoApps/tankets_ele795' >> ~/.bashrc
@@ -141,63 +91,49 @@ echo 'cd /home/arduino/ArduinoApps/tankets_ele795' >> ~/.bashrc
 
 Désormais, chaque nouveau terminal s'ouvrira directement dans le dossier du projet.
 
-### 3.6 Initialiser Git dans le dossier du projet App Lab
-
-Le projet App Lab est stocké dans `/home/arduino/ArduinoApps/tankets_ele795/`.
-
-Si Git n'est pas encore configuré dans ce dossier :
+### A.6 Initialiser Git dans le dossier du projet App Lab
 
 ```bash
-cd /home/arduino/ArduinoApps/tankets_ele795/
+cd /home/arduino/ArduinoApps/tankets_ele795
 git init
 git remote add origin https://github.com/YuryEr/ELE795-TankETS.git
 git branch -M main
 git pull origin main
 ```
 
+Quand Git demande l'authentification :
+- **Username :** votre nom d'utilisateur GitHub
+- **Password :** votre Personal Access Token `ghp_...` (pas votre mot de passe GitHub)
+
+> **Note :** Quand vous collez le token dans le terminal, **rien ne s'affiche** (pas d'étoiles, rien). C'est normal sous Linux. Collez et appuyez sur Enter.
+
+### A.7 Créer le raccourci de synchronisation
+
+Exécutez cette commande **une seule fois** :
+
+```bash
+git config --global alias.sync '!git fetch origin && git reset --hard origin/main'
+```
+
+Désormais, pour mettre à jour le board avec la dernière version sur GitHub, tapez simplement :
+
+```bash
+git sync
+```
+
 ---
 
-## Partie 4 — Workflow quotidien
+### Workflow sur le board
 
-### Sur votre PC (VS Code) — Éditer et envoyer le code
-
-```bash
-# 1. Avant de commencer, récupérer les derniers changements
-git pull
-
-# 2. Modifier vos fichiers dans VS Code...
-
-# 3. Voir ce qui a changé
-git status
-
-# 4. Ajouter vos changements
-git add .
-
-# 5. Commiter avec un message descriptif
-git commit -m "Description claire de ce que vous avez changé"
-
-# 6. Envoyer sur GitHub
-git push
-```
-
-### Sur le board (terminal App Lab) — Récupérer et tester
-
-Pour mettre à jour le board avec la dernière version de `main` sur GitHub, **en écrasant toute modification locale** :
+**Mettre à jour avec la branche principale (main) :**
 
 ```bash
-git fetch origin
-git reset --hard origin/main
+git sync
 ```
 
-Ensuite, cliquez **Run** dans App Lab pour tester.
+Puis cliquez **Run** dans App Lab pour tester.
 
-> **Raccourci :** Vous pouvez créer un alias pour faire les deux commandes en une :
-> ```bash
-> git config --global alias.sync '!git fetch origin && git reset --hard origin/main'
-> ```
-> Après ça, tapez simplement `git sync` pour mettre à jour le board.
-
-### Sur le board — Tester la branche d'un coéquipier
+**Tester la branche d'un coéquipier :**
 
 Chaque membre de l'équipe a sa propre branche :
 
@@ -208,7 +144,7 @@ Chaque membre de l'équipe a sa propre branche :
 | `Ryan` | Ryan |
 | `Serby` | Serby |
 
-Pour tester la branche d'un coéquipier sur le board :
+Pour tester la branche d'un coéquipier :
 
 ```bash
 git fetch origin
@@ -216,9 +152,9 @@ git checkout Yoan
 git reset --hard origin/Yoan
 ```
 
-Remplacez `Yoan` par le nom de la branche à tester. Cliquez **Run** dans App Lab pour tester.
+Remplacez `Yoan` par le nom de la branche à tester. Cliquez **Run** dans App Lab.
 
-**Pour revenir sur main après le test :**
+**Revenir sur main après le test :**
 
 ```bash
 git checkout main
@@ -229,82 +165,89 @@ git reset --hard origin/main
 
 ---
 
-## Partie 5 — Travailler en équipe avec les branches
+# PARTIE B — PC (GitHub Desktop + VS Code)
 
-**Règle d'or : personne ne push directement sur `main`.**
+### B.1 Installer GitHub Desktop
 
-Chacun travaille sur sa propre branche et on fusionne via Pull Request sur GitHub.
+1. Télécharger depuis [desktop.github.com](https://desktop.github.com/)
+2. Installer et ouvrir l'application
+3. Cliquer **Sign in to GitHub.com**
+4. Se connecter avec votre compte GitHub (l'authentification se fait automatiquement, pas besoin de token)
 
-### Créer une branche pour votre travail
+### B.2 Cloner le repo
 
-Chaque membre a déjà sa branche personnelle (`Yury`, `Yoan`, `Ryan`, `Serby`). Pour basculer sur votre branche :
+1. Dans GitHub Desktop : **File → Clone Repository**
+2. Chercher `YuryEr/ELE795-TankETS` dans la liste (ou aller dans l'onglet **URL** et coller `https://github.com/YuryEr/ELE795-TankETS.git`)
+3. **Local Path :** choisir un dossier hors OneDrive, par exemple `C:\Dev\ELE795-TankETS`
+4. Cliquer **Clone**
 
-```bash
-git checkout Yury
-```
+> **⚠️ Ne pas cloner dans un dossier OneDrive.** OneDrive synchronise les fichiers en arrière-plan et peut corrompre le dossier `.git/`. Le code est déjà sauvegardé sur GitHub, vous n'avez pas besoin de OneDrive en plus.
 
-Remplacez `Yury` par votre propre nom de branche.
+### B.3 Ouvrir le projet dans VS Code
 
-### Travailler sur votre branche
+Dans GitHub Desktop : **Repository → Open in Visual Studio Code**
 
-```bash
-# Modifier vos fichiers...
-git add .
-git commit -m "Mode manuel: contrôle moteurs via Bluetooth"
-git push -u origin Yury
-```
+Vous pouvez maintenant éditer les fichiers dans VS Code.
 
-Remplacez `Yury` par votre nom de branche.
+---
 
-### Fusionner via Pull Request
+### Workflow sur PC
 
-1. Aller sur GitHub → votre repo
-2. GitHub affiche un bandeau jaune "Compare & pull request" — cliquer dessus
+**Avant de commencer à travailler :**
+
+Dans GitHub Desktop, cliquez **Fetch origin** (en haut) pour récupérer les derniers changements, puis **Pull origin** si des changements sont disponibles.
+
+**Après avoir modifié vos fichiers :**
+
+1. GitHub Desktop affiche automatiquement la liste des fichiers modifiés dans le panneau de gauche
+2. En bas à gauche, écrire un **résumé** du changement (ex: "Mode manuel: contrôle moteurs via Bluetooth")
+3. Cliquer **Commit to [votre branche]**
+4. Cliquer **Push origin** en haut pour envoyer sur GitHub
+
+**Changer de branche :**
+
+En haut de GitHub Desktop, cliquer sur **Current Branch** → sélectionner votre branche personnelle (`Yury`, `Yoan`, `Ryan`, `Serby`).
+
+**Fusionner via Pull Request :**
+
+1. Après avoir push votre branche, GitHub Desktop affiche un bouton **Create Pull Request** — cliquer dessus
+2. Ça ouvre GitHub dans le navigateur
 3. Décrire vos changements
 4. Un coéquipier review le code
 5. Cliquer **Merge pull request**
 
-### Revenir sur main après le merge
-
-```bash
-git checkout main
-git pull
-```
-
 ---
 
-## Résumé des commandes essentielles
+## Résumé des commandes (board uniquement)
 
 | Action | Commande |
 |---|---|
-| Récupérer les changements | `git pull` |
-| Voir l'état des fichiers | `git status` |
-| Ajouter tous les changements | `git add .` |
-| Commiter | `git commit -m "message"` |
-| Envoyer sur GitHub | `git push` |
-| Écraser le local avec GitHub (main) | `git fetch origin && git reset --hard origin/main` |
-| Tester la branche d'un coéquipier | `git fetch origin && git checkout Yoan && git reset --hard origin/Yoan` |
+| Mettre à jour avec main | `git sync` |
+| Tester une branche | `git fetch origin && git checkout Yoan && git reset --hard origin/Yoan` |
 | Revenir sur main | `git checkout main && git reset --hard origin/main` |
-| Changer de branche | `git checkout NomDeBranche` |
+| Voir l'état des fichiers | `git status` |
+| Voir la branche active | `git branch` |
+
+> **Note :** Sur PC, toutes les commandes se font via l'interface GitHub Desktop. Pas besoin de terminal.
 
 ---
 
 ## Dépannage
 
-### "fatal: not a git repository"
-Vous n'êtes pas dans le bon dossier. Faites `cd` vers le dossier du projet.
+### Board : "fatal: not a git repository"
+Vous n'êtes pas dans le bon dossier. Tapez `cd /home/arduino/ArduinoApps/tankets_ele795`.
 
-### "error: failed to push some refs"
-Quelqu'un d'autre a push avant vous. Faites `git pull` d'abord, puis `git push`.
-
-### "Username/Password" demandé à chaque fois
+### Board : "Username/Password" demandé à chaque fois
 Exécutez `git config --global credential.helper store` puis entrez votre token une dernière fois.
 
-### Le terminal n'affiche rien quand je colle mon token
-C'est normal. Les mots de passe ne s'affichent pas dans un terminal Linux (pas d'étoiles, rien). Collez et appuyez sur Enter.
+### Board : le terminal s'ouvre dans `~` au lieu du projet
+Exécutez `echo 'cd /home/arduino/ArduinoApps/tankets_ele795' >> ~/.bashrc` une fois.
 
-### Conflit de merge
-Si Git dit qu'il y a un conflit, ouvrez les fichiers concernés dans VS Code. Les conflits sont marqués avec `<<<<<<<` et `>>>>>>>`. Choisissez la version à garder, supprimez les marqueurs, puis `git add .` et `git commit`.
+### PC : "error: failed to push some refs"
+Quelqu'un d'autre a push avant vous. Dans GitHub Desktop, cliquez **Fetch origin** puis **Pull origin** d'abord.
+
+### PC : conflit de merge
+GitHub Desktop vous montrera les fichiers en conflit. Ouvrez-les dans VS Code — les conflits sont marqués avec `<<<<<<<` et `>>>>>>>`. Choisissez la version à garder, supprimez les marqueurs, puis revenez dans GitHub Desktop pour commiter.
 
 ---
 
