@@ -1,0 +1,334 @@
+<!--
+    Interface web de contrôle - Véhicule téléguidé autonome
+    PFE ÉTS - Été 2026
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contrôle Véhicule Téléguidé</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+    <div class="header">
+        <h1 class="titre">Véhicule Téléguidé</h1>
+    </div>
+
+    <div id="error-container" class="error-message" style="display: none;"></div>
+
+    <div class="main-content">
+
+        <!-- COLONNE GAUCHE -->
+        <div class="colonne-gauche">
+
+            <div class="container">
+                <h2 class="section-titre">MODE DE CONDUITE</h2>
+                <div class="mode-actuel-badge" id="modeBadge">MANUEL</div>
+                <button class="btn-mode" onclick="changerMode()">Changer de mode</button>
+            </div>
+
+            <div class="container">
+                <h2 class="section-titre">CAMÉRA</h2>
+                <div class="camera-statut">
+                    <span class="indicateur-on" id="indicateurCamera">●</span>
+                    <span id="texteCamera">Active</span>
+                </div>
+                <button class="btn-camera btn-camera-off" id="btnCamera" onclick="toggleCamera()">
+                    Éteindre la caméra
+                </button>
+            </div>
+
+            <div class="container">
+                <h2 class="section-titre">LED BANDEAU 1</h2>
+                <div class="camera-statut">
+                    <span class="indicateur-off" id="indicateurLed1">●</span>
+                    <span id="texteLed1">Éteint</span>
+                </div>
+                <button class="btn-camera btn-camera-on" id="btnOnoffLed1" onclick="toggleOnoffLed(1)">
+                    Allumer
+                </button>
+                <div class="mode-actuel-badge mode-led-gyrophare" id="badgeLed1">GYROPHARE</div>
+                <button class="btn-mode" id="btnModeLed1" onclick="changerModeLed(1)">
+                    Changer mode
+                </button>
+            </div>
+
+            <div class="container">
+                <h2 class="section-titre">LED BANDEAU 2</h2>
+                <div class="camera-statut">
+                    <span class="indicateur-off" id="indicateurLed2">●</span>
+                    <span id="texteLed2">Éteint</span>
+                </div>
+                <button class="btn-camera btn-camera-on" id="btnOnoffLed2" onclick="toggleOnoffLed(2)">
+                    Allumer
+                </button>
+                <div class="mode-actuel-badge mode-led-gyrophare" id="badgeLed2">GYROPHARE</div>
+                <button class="btn-mode" id="btnModeLed2" onclick="changerModeLed(2)">
+                    Changer mode
+                </button>
+            </div>
+
+        </div>
+
+        <!-- CENTRE : Vidéo -->
+        <div class="container container-video">
+            <div id="videoFeedContainer">
+                <div id="videoPlaceholder" class="camera-status">
+                    <p class="feedback-text">Connexion à la caméra...</p>
+                </div>
+                <!-- Flux MJPEG direct — plus besoin d'iframe sur port séparé -->
+                <img id="videoStream"
+                     src=""
+                     style="display: none; width: 100%; border-radius: 8px;"
+                     alt="Flux vidéo">
+            </div>
+        </div>
+
+        <!-- COLONNE DROITE : Joystick -->
+        <div class="colonne-droite">
+            <div class="container container-joystick">
+                <h2 class="section-titre">DIRECTION</h2>
+                <div class="joystick-zone" id="joystickZone">
+                    <div class="joystick-base">
+                        <div class="joystick-poignee" id="joystickPoignee"></div>
+                    </div>
+                </div>
+                <div class="joystick-valeurs" id="joystickValeurs">x: 0.00 | y: 0.00</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='libs/socket.io.min.js') }}"></script>
+    <script>
+
+    // ----------------------------------------------------------------
+    // SOCKET.IO — même port que l'interface (7000)
+    // ----------------------------------------------------------------
+    const socket = io();   // se connecte automatiquement au même host:port
+    const errorContainer = document.getElementById('error-container');
+
+    socket.on('connect', () => {
+        if (errorContainer) errorContainer.style.display = 'none';
+    });
+
+    socket.on('disconnect', () => {
+        if (errorContainer) {
+            errorContainer.textContent = 'Connexion perdue. Vérifiez la connexion au véhicule.';
+            errorContainer.style.display = 'block';
+        }
+    });
+
+    socket.on('mode_actuel', (data) => mettreAJourAffichageMode(data.mode));
+    socket.on('etat_camera', (data) => mettreAJourAffichageCamera(data.active));
+    socket.on('etat_led1',   (data) => mettreAJourAffichageLed(1, data.active, data.mode));
+    socket.on('etat_led2',   (data) => mettreAJourAffichageLed(2, data.active, data.mode));
+
+
+    // ----------------------------------------------------------------
+    // STREAMING VIDÉO MJPEG (img tag — plus simple que iframe)
+    // ----------------------------------------------------------------
+    const videoStream  = document.getElementById('videoStream');
+    const placeholder  = document.getElementById('videoPlaceholder');
+    const streamUrl = `http://${window.location.hostname}:8090/video`;
+
+    function chargerVideo() {
+        videoStream.src = streamUrl;
+        videoStream.style.display = 'block';
+        placeholder.style.display = 'none';
+    }
+
+    videoStream.onerror = () => {
+        videoStream.style.display = 'none';
+        placeholder.style.display = 'flex';
+        placeholder.querySelector('.feedback-text').textContent = 'Caméra non disponible';
+        setTimeout(chargerVideo, 2000);
+    };
+
+    chargerVideo();
+
+
+    // ----------------------------------------------------------------
+    // MODE DE CONDUITE
+    // ----------------------------------------------------------------
+    const modes   = ["manuel", "semi-autonome", "autonome"];
+    let indexMode = 0;
+
+    function changerMode() {
+        indexMode = (indexMode + 1) % modes.length;
+        const nouveauMode = modes[indexMode];
+        socket.emit('changer_mode', { mode: nouveauMode });
+        mettreAJourAffichageMode(nouveauMode);
+    }
+
+    function mettreAJourAffichageMode(mode) {
+        const badge = document.getElementById('modeBadge');
+        badge.textContent = mode.toUpperCase().replace('-', '\u2011');
+        badge.className   = 'mode-actuel-badge mode-' + mode.replace('-', '');
+    }
+
+
+    // ----------------------------------------------------------------
+    // CAMÉRA
+    // ----------------------------------------------------------------
+    let cameraActive = true;
+
+    function toggleCamera() {
+        cameraActive = !cameraActive;
+        socket.emit('toggle_camera', { active: cameraActive });
+        mettreAJourAffichageCamera(cameraActive);
+        if (cameraActive) {
+            chargerVideo();
+        } else {
+            videoStream.src = '';
+            videoStream.style.display = 'none';
+            placeholder.style.display = 'flex';
+            placeholder.querySelector('.feedback-text').textContent = 'Caméra éteinte';
+        }
+    }
+
+    function mettreAJourAffichageCamera(active) {
+        const indicateur = document.getElementById('indicateurCamera');
+        const texte      = document.getElementById('texteCamera');
+        const btn        = document.getElementById('btnCamera');
+        if (active) {
+            indicateur.className = 'indicateur-on';
+            texte.textContent    = 'Active';
+            btn.textContent      = 'Éteindre la caméra';
+            btn.className        = 'btn-camera btn-camera-off';
+        } else {
+            indicateur.className = 'indicateur-off';
+            texte.textContent    = 'Éteinte';
+            btn.textContent      = 'Allumer la caméra';
+            btn.className        = 'btn-camera btn-camera-on';
+        }
+    }
+
+
+    // ----------------------------------------------------------------
+    // BANDEAUX LED
+    // ----------------------------------------------------------------
+    const modesLed   = ["ÉTEINT", "GYROPHARE", "CLIGNOTANT", "PHARES"];
+    const classesLed = ["mode-led-eteint","mode-led-gyrophare","mode-led-clignotant","mode-led-phares"];
+    const ledOn      = { 1: false, 2: false };
+    const ledMode    = { 1: 1, 2: 1 };
+
+    function toggleOnoffLed(num) {
+        ledOn[num] = !ledOn[num];
+        socket.emit(`onoff_led${num}`, { active: ledOn[num] });
+        mettreAJourAffichageLed(num, ledOn[num], ledMode[num]);
+    }
+
+    function changerModeLed(num) {
+        ledMode[num] = (ledMode[num] % 3) + 1;
+        socket.emit(`mode_led${num}`, { mode: ledMode[num] });
+        mettreAJourAffichageLed(num, ledOn[num], ledMode[num]);
+    }
+
+    function mettreAJourAffichageLed(num, active, mode) {
+        const indicateur = document.getElementById(`indicateurLed${num}`);
+        const texte      = document.getElementById(`texteLed${num}`);
+        const btnOnoff   = document.getElementById(`btnOnoffLed${num}`);
+        const badge      = document.getElementById(`badgeLed${num}`);
+
+        if (active) {
+            indicateur.className = 'indicateur-on';
+            texte.textContent    = 'Allumé';
+            btnOnoff.textContent = 'Éteindre';
+            btnOnoff.className   = 'btn-camera btn-camera-off';
+        } else {
+            indicateur.className = 'indicateur-off';
+            texte.textContent    = 'Éteint';
+            btnOnoff.textContent = 'Allumer';
+            btnOnoff.className   = 'btn-camera btn-camera-on';
+        }
+
+        const modeAff     = mode > 0 ? mode : ledMode[num];
+        badge.textContent = modesLed[modeAff];
+        badge.className   = `mode-actuel-badge ${classesLed[modeAff]}`;
+        ledOn[num]        = active;
+        if (mode > 0) ledMode[num] = mode;
+    }
+
+
+    // ----------------------------------------------------------------
+    // JOYSTICK VIRTUEL
+    // ----------------------------------------------------------------
+    const zone             = document.getElementById('joystickZone');
+    const poignee          = document.getElementById('joystickPoignee');
+    const valeursAffichage = document.getElementById('joystickValeurs');
+
+    let joystickActif = false;
+    let centreX = 0, centreY = 0;
+    const RAYON_MAX     = 60;
+    const INTERVALLE_MS = 50;
+    let intervalJoystick = null;
+    let dernierX = 0, dernierY = 0;
+
+    function obtenirCentre() {
+        const rect = zone.querySelector('.joystick-base').getBoundingClientRect();
+        centreX = rect.left + rect.width  / 2;
+        centreY = rect.top  + rect.height / 2;
+    }
+
+    function calculerPosition(clientX, clientY) {
+        let dx = clientX - centreX;
+        let dy = clientY - centreY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance > RAYON_MAX) {
+            dx = (dx / distance) * RAYON_MAX;
+            dy = (dy / distance) * RAYON_MAX;
+        }
+        return { dx, dy };
+    }
+
+    function mettreAJourPoignee(dx, dy) {
+        poignee.style.transform  = `translate(${dx}px, ${dy}px)`;
+        dernierX = parseFloat((dx / RAYON_MAX).toFixed(2));
+        dernierY = parseFloat((-dy / RAYON_MAX).toFixed(2));
+        valeursAffichage.textContent = `x: ${dernierX.toFixed(2)} | y: ${dernierY.toFixed(2)}`;
+    }
+
+    function demarrerJoystick(clientX, clientY) {
+        joystickActif = true;
+        obtenirCentre();
+        intervalJoystick = setInterval(() => {
+            socket.emit('joystick', { x: dernierX, y: dernierY });
+        }, INTERVALLE_MS);
+    }
+
+    function deplacerJoystick(clientX, clientY) {
+        if (!joystickActif) return;
+        const { dx, dy } = calculerPosition(clientX, clientY);
+        mettreAJourPoignee(dx, dy);
+    }
+
+    function relacherJoystick() {
+        if (!joystickActif) return;
+        joystickActif = false;
+        mettreAJourPoignee(0, 0);
+        dernierX = 0; dernierY = 0;
+        clearInterval(intervalJoystick);
+        socket.emit('joystick', { x: 0, y: 0 });
+    }
+
+    zone.addEventListener('mousedown', (e) => { e.preventDefault(); demarrerJoystick(e.clientX, e.clientY); });
+    document.addEventListener('mousemove', (e) => deplacerJoystick(e.clientX, e.clientY));
+    document.addEventListener('mouseup', relacherJoystick);
+
+    zone.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        demarrerJoystick(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+    document.addEventListener('touchmove', (e) => {
+        if (!joystickActif) return;
+        e.preventDefault();
+        deplacerJoystick(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+    document.addEventListener('touchend', relacherJoystick);
+
+    </script>
+</body>
+</html>
