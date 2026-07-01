@@ -1,3 +1,6 @@
+import subprocess, sys
+subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--break-system-packages", "flask", "flask-socketio", "eventlet"])
+
 # =============================================================
 # Serveur principal - Véhicule téléguidé autonome
 # PFE ÉTS - Été 2026
