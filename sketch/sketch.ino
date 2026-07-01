@@ -37,8 +37,8 @@ void set_joystick_x(float x) { joystick_x = x; }
 
 void set_joystick_y(float y) {
     joystick_y = y;
-    int gauche = (int)((joystick_y + joystick_x) * 30.0f);
-    int droite = (int)((joystick_y - joystick_x) * 30.0f);
+    int gauche = (int)((joystick_y - joystick_x) * 30.0f);
+    int droite = (int)((joystick_y + joystick_x) * 30.0f);
     set_vitesse_moteurs(gauche, droite);
 }
 
