@@ -6,13 +6,10 @@ subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--break-sy
 # PFE ÉTS - Été 2026
 #
 # Dépendances : flask, flask-socketio, eventlet
-# Lancement via App Lab OU directement : python3 main.py
 # Interface   : http://<IP_ARDUINO>:7000
 # Flux vidéo  : http://<IP_ARDUINO>:8090/video (service systemd séparé)
 # =============================================================
 
-import threading
-import time
 from flask import Flask, render_template
 from flask_socketio import SocketIO
 
@@ -36,6 +33,164 @@ etat = {
 noms_modes = ["éteint", "gyrophare", "clignotant", "phares"]
 
 # =============================================================
+# CALIBRATION MODE PROGRAMMÉ (provisoire — étape 1)
+# =============================================================
+# HYPOTHÈSES À CALIBRER EXPÉRIMENTALEMENT :
+# 1. Mesurer la distance parcourue en 3 s à consigne 0.5 → VITESSE_M_PAR_S
+# 2. Mesurer l'angle tourné en 2 s à consigne 0.5 → VITESSE_ROT_DEG_S
+# Ces constantes seront remplacées par l'asservissement encodeurs (étape 3).
+
+VITESSE_AVANCE    = 0.5    # consigne joystick (0 à 1) pour les déplacements
+VITESSE_M_PAR_S   = 0.30   # m/s réels à cette consigne — À CALIBRER
+VITESSE_ROTATION  = 0.5    # consigne pour les rotations
+VITESSE_ROT_DEG_S = 90.0   # degrés/s réels à cette consigne — À CALIBRER
+
+# --- État d'exécution des séquences Blockly ---
+sequence_en_cours = False
+sequence_stop     = False
+
+# =============================================================
+# UTILITAIRES BRIDGE
+# =============================================================
+
+def _bridge_call(nom, *args):
+    """Appel Bridge sécurisé (silencieux hors App Lab)."""
+    try:
+        from arduino.app_utils import Bridge
+        Bridge.call(nom, *args)
+        return True
+    except Exception as e:
+        print(f"[Bridge] {nom} erreur : {e}")
+        return False
+
+def _moteurs(x, y):
+    """Envoie une consigne de déplacement au STM32."""
+    _bridge_call("joy_x", float(x))
+    _bridge_call("joy_y", float(y))
+
+# =============================================================
+# EXÉCUTION DES SÉQUENCES BLOCKLY
+# =============================================================
+
+def _sleep_interruptible(duree):
+    """
+    Attend `duree` secondes en vérifiant le flag stop toutes les 50 ms.
+    Retourne False si la séquence a été interrompue.
+    """
+    global sequence_stop
+    ecoule = 0.0
+    while ecoule < duree:
+        if sequence_stop:
+            return False
+        socketio.sleep(0.05)
+        ecoule += 0.05
+    return True
+
+def _description_commande(commande):
+    """Texte affiché dans l'interface pendant l'exécution."""
+    cmd = commande.get("cmd", "?")
+    v   = commande.get("valeur", "")
+    descriptions = {
+        "avancer":        f"Avancer de {v} m",
+        "reculer":        f"Reculer de {v} m",
+        "tourner_gauche": f"Tourner à gauche de {v}°",
+        "tourner_droite": f"Tourner à droite de {v}°",
+        "attendre":       f"Attendre {v} s",
+        "led":            f"Allumer bandeau {commande.get('bandeau')} "
+                          f"({noms_modes[commande.get('mode', 1)]})",
+        "led_off":        f"Éteindre bandeau {commande.get('bandeau')}",
+    }
+    return descriptions.get(cmd, cmd)
+
+def executer_sequence(sequence):
+    """
+    Exécute une séquence de commandes issue de Blockly.
+    Tourne dans une tâche de fond flask-socketio (interruptible).
+    """
+    global sequence_en_cours, sequence_stop
+    sequence_en_cours = True
+    sequence_stop     = False
+    total = len(sequence)
+    interrompue = False
+
+    try:
+        for i, commande in enumerate(sequence):
+            if sequence_stop:
+                interrompue = True
+                break
+
+            cmd = commande.get("cmd")
+            socketio.emit("sequence_status", {
+                "etat":        "en_cours",
+                "index":       i + 1,
+                "total":       total,
+                "description": _description_commande(commande),
+            })
+            print(f"[Séquence] {i+1}/{total} : {_description_commande(commande)}")
+
+            if cmd == "avancer":
+                distance = float(commande.get("valeur", 0))
+                _moteurs(0, VITESSE_AVANCE)
+                if not _sleep_interruptible(distance / VITESSE_M_PAR_S):
+                    interrompue = True
+                _moteurs(0, 0)
+
+            elif cmd == "reculer":
+                distance = float(commande.get("valeur", 0))
+                _moteurs(0, -VITESSE_AVANCE)
+                if not _sleep_interruptible(distance / VITESSE_M_PAR_S):
+                    interrompue = True
+                _moteurs(0, 0)
+
+            elif cmd == "tourner_droite":
+                angle = float(commande.get("valeur", 90))
+                _moteurs(VITESSE_ROTATION, 0)
+                if not _sleep_interruptible(angle / VITESSE_ROT_DEG_S):
+                    interrompue = True
+                _moteurs(0, 0)
+
+            elif cmd == "tourner_gauche":
+                angle = float(commande.get("valeur", 90))
+                _moteurs(-VITESSE_ROTATION, 0)
+                if not _sleep_interruptible(angle / VITESSE_ROT_DEG_S):
+                    interrompue = True
+                _moteurs(0, 0)
+
+            elif cmd == "attendre":
+                if not _sleep_interruptible(float(commande.get("valeur", 1))):
+                    interrompue = True
+
+            elif cmd == "led":
+                bandeau = int(commande.get("bandeau", 1))
+                mode    = int(commande.get("mode", 1))
+                etat[f"mode_led{bandeau}"] = mode
+                etat[f"led{bandeau}_on"]   = True
+                _bridge_call(f"mode_led{bandeau}", mode)
+                socketio.emit(f"etat_led{bandeau}", {"active": True, "mode": mode})
+
+            elif cmd == "led_off":
+                bandeau = int(commande.get("bandeau", 1))
+                etat[f"led{bandeau}_on"] = False
+                _bridge_call(f"mode_led{bandeau}", 0)
+                socketio.emit(f"etat_led{bandeau}",
+                              {"active": False, "mode": etat[f"mode_led{bandeau}"]})
+
+            if interrompue:
+                break
+
+    finally:
+        # Sécurité : toujours arrêter les moteurs en fin de séquence
+        _moteurs(0, 0)
+        sequence_en_cours = False
+        socketio.emit("sequence_status", {
+            "etat":  "arretee" if interrompue else "terminee",
+            "index": 0,
+            "total": total,
+            "description": "Séquence interrompue" if interrompue else "Séquence terminée",
+        })
+        print(f"[Séquence] {'Interrompue' if interrompue else 'Terminée'}")
+
+# =============================================================
 # ROUTES WEB
 # =============================================================
 
@@ -54,7 +209,7 @@ def route_scan_i2c():
         return str(e)
 
 # =============================================================
-# CALLBACKS SOCKET.IO
+# CALLBACKS SOCKET.IO — Pilotage manuel
 # =============================================================
 
 @socketio.on('connect')
@@ -67,22 +222,17 @@ def on_disconnect():
 
 @socketio.on('joystick')
 def on_joystick(data):
+    """Pilotage manuel — ignoré pendant l'exécution d'une séquence."""
+    if sequence_en_cours:
+        return
     x = float(data.get("x", 0))
     y = float(data.get("y", 0))
     etat["direction"]["x"] = x
     etat["direction"]["y"] = y
-    print(f"Joystick reçu → x={x:.2f}, y={y:.2f}")  # ← ajoute ça
-    try:
-        from arduino.app_utils import Bridge
-        Bridge.call("joy_x", x)
-        Bridge.call("joy_y", y)
-        print(f"Bridge OK → joy_x={x:.2f}, joy_y={y:.2f}")  # ← et ça
-    except Exception as e:
-        print(f"[Bridge moteurs] {e}")
+    _moteurs(x, y)
 
 @socketio.on('changer_mode')
 def on_changer_mode(data):
-    """Change le mode de conduite : manuel / semi-autonome / autonome"""
     nouveau_mode = data.get("mode", "manuel")
     etat["mode"] = nouveau_mode
     print(f"Mode véhicule → {nouveau_mode}")
@@ -90,75 +240,92 @@ def on_changer_mode(data):
 
 @socketio.on('toggle_camera')
 def on_toggle_camera(data):
-    """Allume ou éteint l'affichage de la caméra dans l'interface."""
     etat["camera_active"] = data.get("active", True)
-    statut = "ON" if etat["camera_active"] else "OFF"
-    print(f"Caméra → {statut}")
+    print(f"Caméra → {'ON' if etat['camera_active'] else 'OFF'}")
     socketio.emit("etat_camera", {"active": etat["camera_active"]})
 
 @socketio.on('onoff_led1')
 def on_onoff_led1(data):
-    """Allume ou éteint le bandeau LED 1 (pin D3)."""
     actif = data.get("active", False)
     etat["led1_on"] = actif
     if actif:
         mode = etat["mode_led1"] if etat["mode_led1"] > 0 else 1
         etat["mode_led1"] = mode
-        _envoyer_mode_led(1, mode)
+        _bridge_call("mode_led1", mode)
         print(f"LED 1 → ON ({noms_modes[mode]})")
     else:
-        _envoyer_mode_led(1, 0)
+        _bridge_call("mode_led1", 0)
         print("LED 1 → OFF")
     socketio.emit("etat_led1", {"active": actif, "mode": etat["mode_led1"]})
 
 @socketio.on('onoff_led2')
 def on_onoff_led2(data):
-    """Allume ou éteint le bandeau LED 2 (pin D6)."""
     actif = data.get("active", False)
     etat["led2_on"] = actif
     if actif:
         mode = etat["mode_led2"] if etat["mode_led2"] > 0 else 1
         etat["mode_led2"] = mode
-        _envoyer_mode_led(2, mode)
+        _bridge_call("mode_led2", mode)
         print(f"LED 2 → ON ({noms_modes[mode]})")
     else:
-        _envoyer_mode_led(2, 0)
+        _bridge_call("mode_led2", 0)
         print("LED 2 → OFF")
     socketio.emit("etat_led2", {"active": actif, "mode": etat["mode_led2"]})
 
 @socketio.on('mode_led1')
 def on_mode_led1(data):
-    """Change le mode du bandeau LED 1."""
     mode = data.get("mode", 1)
     etat["mode_led1"] = mode
     if etat["led1_on"]:
-        _envoyer_mode_led(1, mode)
+        _bridge_call("mode_led1", mode)
     print(f"LED 1 mode → {noms_modes[mode]}")
     socketio.emit("etat_led1", {"active": etat["led1_on"], "mode": mode})
 
 @socketio.on('mode_led2')
 def on_mode_led2(data):
-    """Change le mode du bandeau LED 2."""
     mode = data.get("mode", 1)
     etat["mode_led2"] = mode
     if etat["led2_on"]:
-        _envoyer_mode_led(2, mode)
+        _bridge_call("mode_led2", mode)
     print(f"LED 2 mode → {noms_modes[mode]}")
     socketio.emit("etat_led2", {"active": etat["led2_on"], "mode": mode})
 
 # =============================================================
-# BRIDGE STM32
+# CALLBACKS SOCKET.IO — Programmation par blocs
 # =============================================================
 
-def _envoyer_mode_led(num, mode):
-    """Envoie le mode LED au STM32 via Bridge."""
-    try:
-        from arduino.app_utils import Bridge
-        Bridge.call(f"mode_led{num}", mode)
-    except ImportError:
-        print(f"[Bridge] mode_led{num} = {mode} (Bridge non disponible hors App Lab)")
-    except Exception as e:
-        print(f"[Bridge] mode_led{num} erreur : {e}")
+@socketio.on('executer_sequence')
+def on_executer_sequence(data):
+    """
+    Reçoit la séquence générée par Blockly.
+    data = {"sequence": [{"cmd": "avancer", "valeur": 1.0}, ...]}
+    """
+    global sequence_en_cours
+    if sequence_en_cours:
+        socketio.emit("sequence_status", {
+            "etat": "erreur",
+            "description": "Une séquence est déjà en cours",
+        })
+        return
+
+    sequence = data.get("sequence", [])
+    if not sequence:
+        socketio.emit("sequence_status", {
+            "etat": "erreur",
+            "description": "Séquence vide — ajoutez des blocs",
+        })
+        return
+
+    print(f"[Séquence] Reçue : {len(sequence)} commandes")
+    socketio.start_background_task(executer_sequence, sequence)
+
+@socketio.on('stop_sequence')
+def on_stop_sequence():
+    """Interrompt la séquence en cours et stoppe les moteurs."""
+    global sequence_stop
+    sequence_stop = True
+    _moteurs(0, 0)
+    print("[Séquence] STOP demandé")
 
 # =============================================================
 # LANCEMENT
@@ -166,5 +333,5 @@ def _envoyer_mode_led(num, mode):
 
 if __name__ == '__main__':
     print(f"Serveur démarré sur http://0.0.0.0:{PORT_WEB}")
-    print(f"Flux vidéo sur http://<IP_ARDUINO>:8090/video (service systemd)")
+    print("Flux vidéo sur http://<IP_ARDUINO>:8090/video (service systemd)")
     socketio.run(app, host='0.0.0.0', port=PORT_WEB, debug=False)
