@@ -33,17 +33,11 @@ etat = {
 noms_modes = ["éteint", "gyrophare", "clignotant", "phares"]
 
 # =============================================================
-# CALIBRATION MODE PROGRAMMÉ (provisoire — étape 1)
+# MODE BLOCS — asservissement délégué au MCU (STM32)
 # =============================================================
-# HYPOTHÈSES À CALIBRER EXPÉRIMENTALEMENT :
-# 1. Mesurer la distance parcourue en 3 s à consigne 0.5 → VITESSE_M_PAR_S
-# 2. Mesurer l'angle tourné en 2 s à consigne 0.5 → VITESSE_ROT_DEG_S
-# Ces constantes seront remplacées par l'asservissement encodeurs (étape 3).
-
-VITESSE_AVANCE    = 0.5    # consigne joystick (0 à 1) pour les déplacements
-VITESSE_M_PAR_S   = 0.30   # m/s réels à cette consigne — À CALIBRER
-VITESSE_ROTATION  = 0.5    # consigne pour les rotations
-VITESSE_ROT_DEG_S = 90.0   # degrés/s réels à cette consigne — À CALIBRER
+# Les déplacements précis (encodeurs + gyro) sont exécutés en boucle
+# fermée sur le MCU. Python démarre le mouvement via Bridge puis attend
+# sa fin en interrogeant "mouvement_actif". Voir sketch/sketch.ino.
 
 # --- État d'exécution des séquences Blockly ---
 sequence_en_cours = False
@@ -62,6 +56,16 @@ def _bridge_call(nom, *args):
     except Exception as e:
         print(f"[Bridge] {nom} erreur : {e}")
         return False
+
+def _bridge_call_valeur(nom, *args):
+    """Comme _bridge_call mais retourne la valeur renvoyée par le MCU
+    (ou None si le Bridge est indisponible)."""
+    try:
+        from arduino.app_utils import Bridge
+        return Bridge.call(nom, *args)
+    except Exception as e:
+        print(f"[Bridge] {nom} erreur : {e}")
+        return None
 
 def _moteurs(x, y):
     """Envoie une consigne de déplacement au STM32."""
@@ -85,6 +89,23 @@ def _sleep_interruptible(duree):
         socketio.sleep(0.05)
         ecoule += 0.05
     return True
+
+def _mouvement_bloquant(nom_commande, valeur):
+    """
+    Démarre un déplacement asservi sur le MCU (non bloquant côté MCU),
+    puis attend sa fin en interrogeant l'état toutes les 50 ms.
+    Interruptible via le flag `sequence_stop`.
+
+    RETOUR : False si le mouvement a été interrompu, True sinon.
+    """
+    _bridge_call(nom_commande, float(valeur))
+    while True:
+        if sequence_stop:
+            _bridge_call("arreter_mouvement")
+            return False
+        if not _bridge_call_valeur("mouvement_actif"):
+            return True
+        socketio.sleep(0.05)
 
 def _description_commande(commande):
     """Texte affiché dans l'interface pendant l'exécution."""
@@ -130,31 +151,23 @@ def executer_sequence(sequence):
 
             if cmd == "avancer":
                 distance = float(commande.get("valeur", 0))
-                _moteurs(0, VITESSE_AVANCE)
-                if not _sleep_interruptible(distance / VITESSE_M_PAR_S):
+                if not _mouvement_bloquant("avancer_metres", distance):
                     interrompue = True
-                _moteurs(0, 0)
 
             elif cmd == "reculer":
                 distance = float(commande.get("valeur", 0))
-                _moteurs(0, -VITESSE_AVANCE)
-                if not _sleep_interruptible(distance / VITESSE_M_PAR_S):
+                if not _mouvement_bloquant("avancer_metres", -distance):
                     interrompue = True
-                _moteurs(0, 0)
-
-            elif cmd == "tourner_droite":
-                angle = float(commande.get("valeur", 90))
-                _moteurs(VITESSE_ROTATION, 0)
-                if not _sleep_interruptible(angle / VITESSE_ROT_DEG_S):
-                    interrompue = True
-                _moteurs(0, 0)
 
             elif cmd == "tourner_gauche":
                 angle = float(commande.get("valeur", 90))
-                _moteurs(-VITESSE_ROTATION, 0)
-                if not _sleep_interruptible(angle / VITESSE_ROT_DEG_S):
+                if not _mouvement_bloquant("tourner_degres", angle):
                     interrompue = True
-                _moteurs(0, 0)
+
+            elif cmd == "tourner_droite":
+                angle = float(commande.get("valeur", 90))
+                if not _mouvement_bloquant("tourner_degres", -angle):
+                    interrompue = True
 
             elif cmd == "attendre":
                 if not _sleep_interruptible(float(commande.get("valeur", 1))):
@@ -180,6 +193,7 @@ def executer_sequence(sequence):
 
     finally:
         # Sécurité : toujours arrêter les moteurs en fin de séquence
+        _bridge_call("arreter_mouvement")
         _moteurs(0, 0)
         sequence_en_cours = False
         socketio.emit("sequence_status", {
@@ -324,6 +338,7 @@ def on_stop_sequence():
     """Interrompt la séquence en cours et stoppe les moteurs."""
     global sequence_stop
     sequence_stop = True
+    _bridge_call("arreter_mouvement")
     _moteurs(0, 0)
     print("[Séquence] STOP demandé")
 
