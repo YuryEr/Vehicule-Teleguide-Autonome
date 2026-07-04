@@ -321,3 +321,136 @@ body {
     body { padding: 12px; }
     .colonne-gauche { flex-direction: column; }
 }
+
+/* ----------------------------------------------------------------
+   ONGLETS (à ajouter à la fin de style.css)
+---------------------------------------------------------------- */
+.onglets {
+    display: flex;
+    gap: 8px;
+}
+
+.onglet {
+    background: transparent;
+    border: 1px solid #B2C8C8;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-family: "Roboto Mono", monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #5D6A6B;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.onglet:hover {
+    background: #FFF;
+}
+
+.onglet-actif {
+    background: #008184;
+    color: #FFF;
+    border-color: #008184;
+}
+
+/* ----------------------------------------------------------------
+   ONGLET PROGRAMMATION PAR BLOCS
+---------------------------------------------------------------- */
+.main-content-blocs {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    max-width: 1300px;
+    align-items: stretch;
+}
+
+.container-blockly {
+    flex: 1;
+    padding: 8px;
+    min-height: 560px;
+}
+
+#blocklyDiv {
+    width: 100%;
+    height: 550px;
+    border-radius: 8px;
+}
+
+.panneau-sequence {
+    width: 220px;
+    flex-shrink: 0;
+    gap: 12px;
+}
+
+.sequence-statut {
+    font-family: "Roboto Mono", monospace;
+    font-size: 12px;
+    color: #2C353A;
+    background: #F0F4F4;
+    border-radius: 8px;
+    padding: 10px;
+    min-height: 60px;
+    line-height: 1.4;
+}
+
+.btn-executer {
+    background-color: #16A56A;
+    color: #FFF;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: "Open Sans", sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-executer:hover:not(:disabled) { background-color: #128A58; }
+.btn-executer:disabled {
+    background-color: #C9D2D2;
+    cursor: not-allowed;
+}
+
+.btn-stop {
+    background-color: #C03030;
+    color: #FFF;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-family: "Open Sans", sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.btn-stop:hover:not(:disabled) { background-color: #A02020; }
+.btn-stop:disabled {
+    background-color: #C9D2D2;
+    cursor: not-allowed;
+}
+
+.btn-effacer {
+    background-color: #F0F4F4;
+    color: #5D6A6B;
+    border: 1px solid #C9D2D2;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: "Open Sans", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.btn-effacer:hover { background-color: #E0E8E8; }
+
+/* Responsive pour l'onglet blocs */
+@media (max-width: 900px) {
+    .main-content-blocs {
+        flex-direction: column;
+    }
+    .panneau-sequence {
+        width: 100%;
+    }
+    #blocklyDiv {
+        height: 400px;
+    }
+}
