@@ -4,15 +4,27 @@
  * Responsabilités (temps réel) :
  *   - Pilotage manuel des moteurs via joystick (Bridge : joy_x / joy_y)
  *   - Déplacements asservis en boucle fermée pour le mode blocs :
- *       * avancer_metres : odométrie par encodeurs magnétiques
- *       * tourner_degres : intégration de la vitesse angulaire (gyro MPU-6050)
+ *       * avancer_metres / reculer_metres : odométrie par encodeurs
+ *       * tourner_gauche_deg / tourner_droite_deg : intégration gyro (MPU-6050)
  *   - Machine à états NON bloquante : le Bridge reste disponible pendant
  *     le mouvement (permet l'arrêt d'urgence et évite les timeouts RPC).
+ *
+ * NOTE : toutes les fonctions Bridge du mode blocs reçoivent une valeur
+ * POSITIVE — le Bridge ne transmet pas correctement les nombres négatifs.
+ * Le sens (avant/arrière, gauche/droite) est choisi côté MCU.
  *
  * Matériel :
  *   - Carte moteur Hiwonder (I2C 0x34, bus Wire1/Qwiic)
  *   - IMU MPU-6050 (I2C 0x68, bus Wire1) pour la rotation
  *   - Encodeurs magnétiques JGB37-520 (44 impulsions/tour moteur)
+ *
+ * Sources (projet académique) :
+ *   - InvenSense (2013). MPU-6000/MPU-6050 Register Map and Descriptions,
+ *     Rev. 4.2 — sensibilité gyro 131 LSB/(°/s) à ±250 °/s.
+ *   - Borenstein, J., Everett, H. R., Feng, L. (1996). Where am I? Sensors
+ *     and Methods for Mobile Robot Positioning. University of Michigan.
+ *     (odométrie : distance = impulsions / impulsions_par_tour * circonférence)
+ *   - Hiwonder. Documentation carte contrôleur moteur 4 canaux (registres I2C).
  */
 
 #include <Arduino_RouterBridge.h>
@@ -34,7 +46,7 @@
 #define GYRO_SENSITIVITY  131.0   // LSB par °/s (±250 °/s)
 
 // ============================================================
-// CALIBRATION (valeurs validées expérimentalement — équipe Vlad/Yury)
+// CALIBRATION (valeurs validées expérimentalement)
 // ============================================================
 #define WHEEL_DIAMETER_MM     65.0
 #define GEARBOX_RATIO         50.0
@@ -43,7 +55,6 @@
 
 #define VITESSE_DEPLACEMENT   12    // consigne moteur pour avancer/reculer
 #define VITESSE_ROTATION      12    // consigne moteur pour tourner
-#define SENS_AVANT            -1    // consigne calibrée : avant = négatif
 
 // Compensation coasting rotation : on arrête 10° avant, ralenti sous 20°
 #define ROT_MARGE_ARRET_DEG   10.0
@@ -62,12 +73,12 @@ volatile EtatMouvement etatMouvement = INACTIF;
 // Contexte « avancer »
 long   encodeurDepart   = 0;
 float  distanceCible    = 0.0f;
-int    sensAvance       = SENS_AVANT;
+int    sensAvance       = 1;        // +1 = avant, -1 = arrière (sur ce robot)
 
 // Contexte « tourner »
 float  angleCumule      = 0.0f;
 float  angleCibleAbs    = 0.0f;
-int    signeRotation    = 1;       // +1 gauche, -1 droite
+int    signeRotation    = 1;        // +1 gauche, -1 droite
 bool   rotationLente    = false;
 unsigned long tPrecRotation = 0;
 
@@ -179,53 +190,39 @@ void Manuel_JoystickY(float y) {
 // DÉPLACEMENTS ASSERVIS (Bridge, machine à états NON bloquante)
 // ============================================================
 
-/*
- * Deplacement_AvancerMetres
- *
- * Démarre un déplacement rectiligne asservi sur les encodeurs.
- * Retourne immédiatement ; la progression est gérée dans loop().
- *
- * PARAMETRE :
- * distance - distance en mètres (positif = avant, négatif = arrière)
- *
- * RETOUR :
- * 1 (mouvement démarré)
- */
-int Deplacement_AvancerMetres(float distance) {
-    encodeurDepart   = Encodeur_LireMoteurGauche();
-    distanceCible    = fabs(distance);
-    sensAvance       = (distance >= 0) ? SENS_AVANT : -SENS_AVANT;
-    tDebutMouvement  = millis();
-    etatMouvement    = AVANCE;
-    Moteurs_SetVitesse(sensAvance * VITESSE_DEPLACEMENT,
-                       sensAvance * VITESSE_DEPLACEMENT);
-    return 1;
+// Démarre un déplacement rectiligne (sens : +1 = avant, -1 = arrière)
+static void _demarrer_avance(float distance_m, int sens) {
+    encodeurDepart  = Encodeur_LireMoteurGauche();
+    distanceCible   = fabs(distance_m);
+    sensAvance      = sens;
+    tDebutMouvement = millis();
+    etatMouvement   = AVANCE;
+    Moteurs_SetVitesse(sens * VITESSE_DEPLACEMENT, sens * VITESSE_DEPLACEMENT);
 }
 
-/*
- * Deplacement_TournerDegres
- *
- * Démarre une rotation sur place asservie sur le gyroscope.
- * Retourne immédiatement ; la progression est gérée dans loop().
- *
- * PARAMETRE :
- * angle - angle en degrés (positif = gauche, négatif = droite)
- *
- * RETOUR :
- * 1 (mouvement démarré)
- */
-int Deplacement_TournerDegres(float angle) {
+// Démarre une rotation sur place (signe : +1 = gauche, -1 = droite)
+static void _demarrer_rotation(float angle_deg, int signe) {
     angleCumule     = 0.0f;
-    angleCibleAbs   = fabs(angle);
-    signeRotation   = (angle >= 0) ? 1 : -1;
+    angleCibleAbs   = fabs(angle_deg);
+    signeRotation   = signe;
     rotationLente   = false;
     tPrecRotation   = millis();
     tDebutMouvement = millis();
     etatMouvement   = ROTATION;
-    Moteurs_SetVitesse(signeRotation *  VITESSE_ROTATION,
-                       signeRotation * -VITESSE_ROTATION);
-    return 1;
+    Moteurs_SetVitesse(signe * VITESSE_ROTATION, signe * -VITESSE_ROTATION);
 }
+
+/*
+ * Fonctions Bridge du mode blocs — TOUTES reçoivent une valeur POSITIVE.
+ * (le Bridge ne transmet pas correctement les nombres négatifs)
+ *
+ * PARAMETRE : distance en mètres, ou angle en degrés (toujours > 0)
+ * RETOUR    : 1 (mouvement démarré)
+ */
+int Deplacement_AvancerMetres(float distance) { _demarrer_avance(distance,  +1); return 1; }
+int Deplacement_ReculerMetres(float distance) { _demarrer_avance(distance,  -1); return 1; }
+int Deplacement_TournerGauche(float angle)    { _demarrer_rotation(angle,   +1); return 1; }
+int Deplacement_TournerDroite(float angle)    { _demarrer_rotation(angle,   -1); return 1; }
 
 /*
  * Deplacement_Arreter
@@ -322,11 +319,13 @@ void setup() {
     // Pilotage manuel
     Bridge.provide_safe("joy_x", Manuel_JoystickX);
     Bridge.provide_safe("joy_y", Manuel_JoystickY);
-    // Mode blocs (asservi)
-    Bridge.provide_safe("avancer_metres",    Deplacement_AvancerMetres);
-    Bridge.provide_safe("tourner_degres",    Deplacement_TournerDegres);
-    Bridge.provide_safe("arreter_mouvement", Deplacement_Arreter);
-    Bridge.provide_safe("mouvement_actif",   Deplacement_EstActif);
+    // Mode blocs (asservi) — valeurs toujours positives
+    Bridge.provide_safe("avancer_metres",     Deplacement_AvancerMetres);
+    Bridge.provide_safe("reculer_metres",     Deplacement_ReculerMetres);
+    Bridge.provide_safe("tourner_gauche_deg", Deplacement_TournerGauche);
+    Bridge.provide_safe("tourner_droite_deg", Deplacement_TournerDroite);
+    Bridge.provide_safe("arreter_mouvement",  Deplacement_Arreter);
+    Bridge.provide_safe("mouvement_actif",    Deplacement_EstActif);
     // Diagnostic
     Bridge.provide_safe("scan_i2c", Scan_I2C);
 }

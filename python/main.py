@@ -38,6 +38,9 @@ noms_modes = ["éteint", "gyrophare", "clignotant", "phares"]
 # Les déplacements précis (encodeurs + gyro) sont exécutés en boucle
 # fermée sur le MCU. Python démarre le mouvement via Bridge puis attend
 # sa fin en interrogeant "mouvement_actif". Voir sketch/sketch.ino.
+# Les commandes Bridge reçoivent TOUJOURS une valeur positive (le Bridge
+# ne transmet pas correctement les nombres négatifs) : le sens est géré
+# par des fonctions dédiées côté MCU.
 
 # --- État d'exécution des séquences Blockly ---
 sequence_en_cours = False
@@ -98,7 +101,7 @@ def _mouvement_bloquant(nom_commande, valeur):
 
     RETOUR : False si le mouvement a été interrompu, True sinon.
     """
-    _bridge_call(nom_commande, float(valeur))
+    _bridge_call(nom_commande, abs(float(valeur)))
     while True:
         if sequence_stop:
             _bridge_call("arreter_mouvement")
@@ -150,23 +153,19 @@ def executer_sequence(sequence):
             print(f"[Séquence] {i+1}/{total} : {_description_commande(commande)}")
 
             if cmd == "avancer":
-                distance = float(commande.get("valeur", 0))
-                if not _mouvement_bloquant("avancer_metres", distance):
+                if not _mouvement_bloquant("avancer_metres", commande.get("valeur", 0)):
                     interrompue = True
 
             elif cmd == "reculer":
-                distance = float(commande.get("valeur", 0))
-                if not _mouvement_bloquant("avancer_metres", -distance):
+                if not _mouvement_bloquant("reculer_metres", commande.get("valeur", 0)):
                     interrompue = True
 
             elif cmd == "tourner_gauche":
-                angle = float(commande.get("valeur", 90))
-                if not _mouvement_bloquant("tourner_degres", angle):
+                if not _mouvement_bloquant("tourner_gauche_deg", commande.get("valeur", 90)):
                     interrompue = True
 
             elif cmd == "tourner_droite":
-                angle = float(commande.get("valeur", 90))
-                if not _mouvement_bloquant("tourner_degres", -angle):
+                if not _mouvement_bloquant("tourner_droite_deg", commande.get("valeur", 90)):
                     interrompue = True
 
             elif cmd == "attendre":
