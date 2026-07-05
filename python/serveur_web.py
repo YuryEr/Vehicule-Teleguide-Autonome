@@ -17,10 +17,13 @@ Sources :
 """
 
 import os
-from flask import Flask
+import cv2
+from flask import Flask, Response
 from flask_socketio import SocketIO
 
 import comm_bridge
+
+
 
 
 # ======================== Configuration ========================
@@ -59,6 +62,39 @@ sequence_stop     = False
 @app.route('/')
 def index():
     return app.send_static_file('index.html')
+
+# ======================== Flux video ========================
+
+camera = None
+
+def obtenir_camera():
+    global camera
+    if camera is None or not camera.isOpened():
+        camera = cv2.VideoCapture(0)
+        camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    return camera
+
+
+def generer_flux():
+    cam = obtenir_camera()
+    while True:
+        ret, frame = cam.read()
+        if not ret:
+            socketio.sleep(0.1)
+            continue
+        _, jpeg = cv2.imencode('.jpg', frame,
+                               [cv2.IMWRITE_JPEG_QUALITY, 50])
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n'
+               + jpeg.tobytes() + b'\r\n')
+        socketio.sleep(0.033)
+
+
+@app.route('/video')
+def flux_video():
+    return Response(generer_flux(),
+                    mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
 # ======================== Socket — Connexion ========================

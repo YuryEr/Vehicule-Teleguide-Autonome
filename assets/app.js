@@ -277,7 +277,7 @@ socket.on('sequence_status', (data) => {
 // ================================================================
 const videoStream = document.getElementById('video-stream');
 const placeholder = document.getElementById('video-placeholder');
-const streamUrl   = `http://${window.location.hostname}:8090/video`;
+const streamUrl   = `http://${window.location.hostname}:7000/video`;
 
 function chargerVideo() {
     videoStream.src = streamUrl;
