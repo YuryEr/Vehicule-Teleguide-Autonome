@@ -66,22 +66,39 @@ def index():
 # ======================== Flux video ========================
 
 camera = None
+index_camera = None
 
 def obtenir_camera():
-    global camera
-    if camera is None or not camera.isOpened():
-        camera = cv2.VideoCapture(0)
-        camera.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        camera.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-    return camera
+    global camera, index_camera
+    if camera is not None and camera.isOpened():
+        return camera
+
+    for i in range(10):
+        cam = cv2.VideoCapture(i)
+        if cam.isOpened():
+            ret, _ = cam.read()
+            if ret:
+                print(f"[camera] Trouvee sur index {i}")
+                camera = cam
+                index_camera = i
+                return camera
+            cam.release()
+
+    print("[camera] Aucune camera detectee")
+    return None
 
 
 def generer_flux():
-    cam = obtenir_camera()
     while True:
+        cam = obtenir_camera()
+        if cam is None:
+            socketio.sleep(2)
+            continue
         ret, frame = cam.read()
         if not ret:
-            socketio.sleep(0.1)
+            cam.release()
+            camera = None
+            socketio.sleep(1)
             continue
         _, jpeg = cv2.imencode('.jpg', frame,
                                [cv2.IMWRITE_JPEG_QUALITY, 50])
