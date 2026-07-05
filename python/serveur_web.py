@@ -90,9 +90,9 @@ def obtenir_camera():
 
     print("[camera] Aucune camera detectee")
     return None
-    
+
 def _tache_capture():
-    global derniere_frame
+    global derniere_frame, camera
     while True:
         cam = obtenir_camera()
         if cam is None:
@@ -100,10 +100,11 @@ def _tache_capture():
             continue
         ret, frame = cam.read()
         if not ret:
+            camera = None
             socketio.sleep(0.5)
             continue
         derniere_frame = frame
-        socketio.sleep(0.033)
+        socketio.sleep(0)
 
 
 def generer_flux():
@@ -113,11 +114,11 @@ def generer_flux():
             socketio.sleep(0.1)
             continue
         _, jpeg = cv2.imencode('.jpg', frame,
-                               [cv2.IMWRITE_JPEG_QUALITY, 50])
+                               [cv2.IMWRITE_JPEG_QUALITY, 60])
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n'
                + jpeg.tobytes() + b'\r\n')
-        socketio.sleep(0.033)
+        socketio.sleep(0)
 
 
 @app.route('/video')
@@ -158,7 +159,7 @@ def _tache_vision():
         frame = derniere_frame
         if frame is not None:
             bv.traiter(frame)
-        socketio.sleep(0.03)
+        socketio.sleep(0.05)
 
 # ======================== Socket — Connexion ========================
 
