@@ -1,0 +1,5 @@
+# Inference runs on onnxruntime (the App Lab OpenCV build lacks the cv2.dnn
+# module). cv2 itself is provided system-wide via `apt install python3-opencv`
+# and is used only for camera capture / drawing / JPEG encoding.
+onnxruntime
+numpy
