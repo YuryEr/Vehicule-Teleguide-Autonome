@@ -6,3 +6,4 @@ eventlet
 # Vision (detection routiere)
 onnxruntime
 numpy
+opencv-python-headless
