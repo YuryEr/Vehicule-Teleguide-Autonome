@@ -22,6 +22,8 @@ from flask import Flask, Response
 from flask_socketio import SocketIO
 
 import comm_bridge
+import vision as module_vision
+from boucle_vision import BoucleVision
 
 
 
@@ -63,7 +65,9 @@ sequence_stop     = False
 def index():
     return app.send_static_file('index.html')
 
-# ======================== Flux video ========================
+# ======================== Flux video + vision ========================
+
+derniere_frame = None
 
 camera = None
 index_camera = None
@@ -86,9 +90,9 @@ def obtenir_camera():
 
     print("[camera] Aucune camera detectee")
     return None
-
-
-def generer_flux():
+    
+def _tache_capture():
+    global derniere_frame
     while True:
         cam = obtenir_camera()
         if cam is None:
@@ -96,9 +100,17 @@ def generer_flux():
             continue
         ret, frame = cam.read()
         if not ret:
-            cam.release()
-            camera = None
-            socketio.sleep(1)
+            socketio.sleep(0.5)
+            continue
+        derniere_frame = frame
+        socketio.sleep(0.033)
+
+
+def generer_flux():
+    while True:
+        frame = derniere_frame
+        if frame is None:
+            socketio.sleep(0.1)
             continue
         _, jpeg = cv2.imencode('.jpg', frame,
                                [cv2.IMWRITE_JPEG_QUALITY, 50])
@@ -113,6 +125,40 @@ def flux_video():
     return Response(generer_flux(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
+
+def _sur_changement_feu(present, couleur, confiance):
+    nom = module_vision.NOMS_COULEURS.get(couleur, "AUCUNE")
+    socketio.emit('etat_feu', {
+        'present': present,
+        'couleur': nom,
+        'confiance': confiance,
+    })
+    comm_bridge.notifier_feu(present, couleur, confiance)
+
+
+def _sur_lignes_detectees(detecte, ecart):
+    socketio.emit('etat_lignes', {
+        'detecte': detecte,
+        'ecart': ecart,
+    })
+    comm_bridge.notifier_lignes(detecte, ecart)
+
+
+def _tache_vision():
+    try:
+        module_vision.initialiser_modele()
+    except Exception as e:
+        print(f"[vision] Modele non charge : {e}")
+        return
+
+    bv = BoucleVision(_sur_changement_feu, _sur_lignes_detectees)
+    print("[vision] Pipeline de detection active")
+
+    while True:
+        frame = derniere_frame
+        if frame is not None:
+            bv.traiter(frame)
+        socketio.sleep(0.03)
 
 # ======================== Socket — Connexion ========================
 
@@ -365,4 +411,6 @@ def _description_commande(commande):
 def demarrer_serveur():
     """Lance le serveur web. Bloquant."""
     print(f"[web] Serveur demarre sur http://0.0.0.0:{PORT_WEB}")
+    socketio.start_background_task(_tache_capture)
+    socketio.start_background_task(_tache_vision)
     socketio.run(app, host='0.0.0.0', port=PORT_WEB, debug=False)

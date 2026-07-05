@@ -489,3 +489,24 @@ document.addEventListener('touchmove', (e) => {
 }, { passive: false });
 
 document.addEventListener('touchend', relacherJoystick);
+
+// ======================== Detection (vision) ========================
+
+socket.on('etat_feu', (data) => {
+    console.log('[vision] Feu:', data.present ? data.couleur + ' ' + data.confiance + '%' : 'aucun');
+});
+
+socket.on('etat_lignes', (data) => {
+    console.log('[vision] Lignes:', data.detecte ? 'ecart ' + data.ecart + 'px' : 'non');
+});
+
+
+// ======================== Detection (vision) ========================
+
+socket.on('etat_feu', (data) => {
+    console.log('[vision] Feu:', data.present ? data.couleur + ' ' + data.confiance + '%' : 'aucun');
+});
+
+socket.on('etat_lignes', (data) => {
+    console.log('[vision] Lignes:', data.detecte ? 'ecart ' + data.ecart + 'px' : 'non');
+});
