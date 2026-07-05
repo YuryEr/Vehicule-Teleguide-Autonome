@@ -492,21 +492,20 @@ document.addEventListener('touchend', relacherJoystick);
 
 // ======================== Detection (vision) ========================
 
+const detectionTexte = document.getElementById('detection-texte');
+const detectionsActives = {};
+
+function mettreAJourDetectionTexte() {
+    const parties = Object.values(detectionsActives).filter(Boolean);
+    detectionTexte.textContent = parties.length ? parties.join(' | ') : '';
+}
+
 socket.on('etat_feu', (data) => {
-    console.log('[vision] Feu:', data.present ? data.couleur + ' ' + data.confiance + '%' : 'aucun');
+    detectionsActives.feu = data.present ? 'Feu ' + data.couleur : null;
+    mettreAJourDetectionTexte();
 });
 
 socket.on('etat_lignes', (data) => {
-    console.log('[vision] Lignes:', data.detecte ? 'ecart ' + data.ecart + 'px' : 'non');
-});
-
-
-// ======================== Detection (vision) ========================
-
-socket.on('etat_feu', (data) => {
-    console.log('[vision] Feu:', data.present ? data.couleur + ' ' + data.confiance + '%' : 'aucun');
-});
-
-socket.on('etat_lignes', (data) => {
-    console.log('[vision] Lignes:', data.detecte ? 'ecart ' + data.ecart + 'px' : 'non');
+    detectionsActives.lignes = data.detecte ? 'Lignes detectees' : null;
+    mettreAJourDetectionTexte();
 });
