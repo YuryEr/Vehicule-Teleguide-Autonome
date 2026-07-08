@@ -18,14 +18,13 @@ Sources :
 
 import os
 import cv2
+import eventlet
 from flask import Flask, Response
 from flask_socketio import SocketIO
 
 import comm_bridge
 import vision as module_vision
 from boucle_vision import BoucleVision
-
-
 
 
 # ======================== Configuration ========================
@@ -98,7 +97,7 @@ def _tache_capture():
         if cam is None:
             socketio.sleep(2)
             continue
-        ret, frame = cam.read()
+        ret, frame = eventlet.tpool.execute(cam.read)
         if not ret:
             camera = None
             socketio.sleep(0.5)
@@ -113,8 +112,10 @@ def generer_flux():
         if frame is None:
             socketio.sleep(0.1)
             continue
-        _, jpeg = cv2.imencode('.jpg', frame,
-                               [cv2.IMWRITE_JPEG_QUALITY, 60])
+        _, jpeg = eventlet.tpool.execute(
+            cv2.imencode, '.jpg', frame,
+            [cv2.IMWRITE_JPEG_QUALITY, 60]
+        )
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n'
                + jpeg.tobytes() + b'\r\n')
@@ -158,7 +159,7 @@ def _tache_vision():
     while True:
         frame = derniere_frame
         if frame is not None:
-            bv.traiter(frame)
+            eventlet.tpool.execute(bv.traiter, frame)
         socketio.sleep(0.05)
 
 # ======================== Socket — Connexion ========================
