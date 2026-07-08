@@ -17,9 +17,9 @@ import comm_bridge
 
 # ======================== Parametres de suivi ========================
 
-VITESSE_AVANT  = 0.3
-KP_LATERAL     = 0.002
-CORRECTION_MAX = 0.5
+VITESSE_AVANT  = 0.4
+KP_LATERAL     = 0.001
+CORRECTION_MAX = 0.3
 
 
 # ======================== Etat interne ========================

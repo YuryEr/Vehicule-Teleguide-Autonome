@@ -91,7 +91,9 @@ _PLAGES_HSV = {
     COULEUR_VERT:  [((40, 60, 60),  (90, 255, 255))],
 }
 
-ROI_HAUT_LIGNES  = 0.55
+ROI_HAUT_LIGNES  = 0.60
+SEUIL_LIGNE      = 120
+PIXELS_MIN_LIGNE = 500
 REDUCTION_LIGNES = 0.5
 
 
@@ -284,38 +286,30 @@ def classifier_couleur_feu(image_recadree):
 
 def detecter_lignes(frame):
     """Retourne (detecte, ecart_px).
-    ecart_px positif = decale a droite, negatif = a gauche."""
+    ecart_px positif = decale a droite, negatif = a gauche.
+
+    Algorithme : seuillage adaptatif sur la ligne noire,
+    calcul du centroide dans la region d'interet.
+    Reference : Adaptive Thresholding — OpenCV documentation
+    https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html
+    """
     h, w = frame.shape[:2]
-    roi   = frame[int(h * ROI_HAUT_LIGNES):, :]
-    petit = cv2.resize(roi, (0, 0),
-                       fx=REDUCTION_LIGNES, fy=REDUCTION_LIGNES)
-    gris  = cv2.cvtColor(petit, cv2.COLOR_BGR2GRAY)
-    gris  = cv2.GaussianBlur(gris, (5, 5), 0)
-    bords = cv2.Canny(gris, 50, 150)
+    roi = frame[int(h * ROI_HAUT_LIGNES):, :]
+    gris = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    gris = cv2.GaussianBlur(gris, (5, 5), 0)
 
-    lignes = cv2.HoughLinesP(
-        bords, 1, np.pi / 180,
-        threshold=60, minLineLength=50, maxLineGap=15
-    )
-    if lignes is None:
+    _, masque = cv2.threshold(gris, SEUIL_LIGNE, 255, cv2.THRESH_BINARY_INV)
+
+    moments = cv2.moments(masque)
+    if moments["m00"] < PIXELS_MIN_LIGNE:
         return False, 0
 
-    lp = petit.shape[1]
-    x_gauche, x_droite = [], []
-
-    lignes = lignes.reshape(-1, 4)
-    for seg in lignes:
-        x1, y1, x2, y2 = seg
-        if x2 - x1 == 0:
-            continue
-        pente = (y2 - y1) / (x2 - x1)
-        if abs(pente) < 0.5:
-            continue
-        xb = x1 if y1 > y2 else x2
-        (x_gauche if pente < 0 else x_droite).append(xb)
-
-    if not x_gauche or not x_droite:
+    cx = int(moments["m10"] / moments["m00"])
+    ecart = cx - (masque.shape[1] // 2)
+    
+    moments = cv2.moments(masque)
+    print(f"[lignes] pixels noirs: {int(moments['m00']/255)}, seuil: {SEUIL_LIGNE}")
+    if moments["m00"] < PIXELS_MIN_LIGNE:
         return False, 0
-
-    centre = (np.mean(x_gauche) + np.mean(x_droite)) / 2
-    return True, int((centre - lp / 2) / REDUCTION_LIGNES)
+        
+    return True, ecart
