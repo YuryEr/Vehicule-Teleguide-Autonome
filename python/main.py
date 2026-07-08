@@ -2,30 +2,18 @@
 TankETS — Point d'entree (MPU / Qualcomm Linux)
 """
 
-import time
+import subprocess
+import sys
+from pathlib import Path
 
-from arduino.app_utils import App
+requirements = Path(__file__).parent / "requirements.txt"
+if requirements.exists():
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install",
+         "-r", str(requirements), "--quiet"],
+        stdout=subprocess.DEVNULL
+    )
 
-import vision
-import comm_bridge
-from boucle_vision import BoucleVision
+from serveur_web import demarrer_serveur
 
-
-vision.initialiser_modele()
-vision.initialiser_camera()
-
-pipeline = BoucleVision(
-    sur_changement_feu=comm_bridge.notifier_feu,
-    sur_lignes_detectees=comm_bridge.notifier_lignes
-)
-
-
-def loop():
-    frame = vision.derniere_image()
-    if frame is None:
-        time.sleep(0.02)
-        return
-    pipeline.traiter(frame)
-
-
-App.run(user_loop=loop)
+demarrer_serveur()

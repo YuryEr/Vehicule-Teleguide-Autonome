@@ -303,7 +303,8 @@ def detecter_lignes(frame):
     lp = petit.shape[1]
     x_gauche, x_droite = [], []
 
-    for seg in lignes[:, 0, :]:
+    lignes = lignes.reshape(-1, 4)
+    for seg in lignes:
         x1, y1, x2, y2 = seg
         if x2 - x1 == 0:
             continue
