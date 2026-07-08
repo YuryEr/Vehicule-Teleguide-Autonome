@@ -19,6 +19,7 @@ Sources :
 import os
 import cv2
 import eventlet
+import eventlet.tpool
 from flask import Flask, Response
 from flask_socketio import SocketIO
 
