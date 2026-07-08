@@ -295,7 +295,7 @@ def detecter_lignes(frame):
 
     lignes = cv2.HoughLinesP(
         bords, 1, np.pi / 180,
-        threshold=40, minLineLength=30, maxLineGap=20
+        threshold=60, minLineLength=50, maxLineGap=15
     )
     if lignes is None:
         return False, 0
@@ -309,16 +309,13 @@ def detecter_lignes(frame):
         if x2 - x1 == 0:
             continue
         pente = (y2 - y1) / (x2 - x1)
-        if abs(pente) < 0.3:
+        if abs(pente) < 0.5:
             continue
         xb = x1 if y1 > y2 else x2
         (x_gauche if pente < 0 else x_droite).append(xb)
 
-    if not x_gauche and not x_droite:
+    if not x_gauche or not x_droite:
         return False, 0
 
-    centre = (
-        (np.mean(x_gauche) if x_gauche else 0) +
-        (np.mean(x_droite) if x_droite else lp)
-    ) / 2
+    centre = (np.mean(x_gauche) + np.mean(x_droite)) / 2
     return True, int((centre - lp / 2) / REDUCTION_LIGNES)

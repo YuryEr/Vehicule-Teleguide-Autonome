@@ -26,6 +26,7 @@ from flask_socketio import SocketIO
 import comm_bridge
 import vision as module_vision
 from boucle_vision import BoucleVision
+import navigation
 
 
 # ======================== Configuration ========================
@@ -145,6 +146,7 @@ def _sur_lignes_detectees(detecte, ecart):
         'ecart': ecart,
     })
     comm_bridge.notifier_lignes(detecte, ecart)
+    navigation.traiter_lignes(detecte, ecart)
 
 
 def _tache_vision():
@@ -179,7 +181,7 @@ def on_disconnect():
 
 @socketio.on('joystick')
 def on_joystick(data):
-    if sequence_en_cours:
+    if sequence_en_cours or navigation.est_actif():
         return
     x = float(data.get("x", 0))
     y = float(data.get("y", 0))
@@ -194,6 +196,10 @@ def on_changer_mode(data):
     etat["mode"] = nouveau_mode
     print(f"[web] Mode vehicule -> {nouveau_mode}")
     socketio.emit("mode_actuel", {"mode": nouveau_mode})
+    if nouveau_mode == "autonome":
+        navigation.activer()
+    else:
+        navigation.desactiver()
 
 
 @socketio.on('toggle_camera')
