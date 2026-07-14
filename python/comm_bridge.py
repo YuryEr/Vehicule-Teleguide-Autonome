@@ -114,6 +114,28 @@ def definir_mode_led(bandeau, mode):
     _appeler(f"mode_led{int(bandeau)}", int(mode))
 
 
+# ======================== Capteurs de distance ========================
+
+def lire_sonar_cm():
+    """Distance frontale mesuree par le sonar HC-SR04.
+
+    Retour :
+        int  — distance en cm (SONAR_DISTANCE_MAX ~= voie degagee)
+        None — Bridge indisponible
+    """
+    return _appeler_avec_retour("lire_sonar_cm")
+
+
+def lire_lidar_cm():
+    """Distance droit devant mesuree par le TF-Luna (LiDAR).
+
+    Retour :
+        int  — distance en cm ; -1 si la lecture MCU est invalide
+        None — Bridge indisponible
+    """
+    return _appeler_avec_retour("lire_lidar_cm")
+
+
 # ======================== Vision ========================
 
 def notifier_feu(present, couleur, confiance):

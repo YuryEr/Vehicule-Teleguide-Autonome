@@ -19,15 +19,17 @@ int   courantAngleServoDeg = SERVO_CENTRE;
 //  En I2C, chaque lecture est deja "fraiche" (requete/reponse).
 // ============================================================
 bool TfLunaLireI2C(float &distCm, uint16_t &force, float &tempC) {
-  Wire.beginTransmission(TFL_ADDR);
-  Wire.write(TFL_REG_DIST_LOW);
-  if (Wire.endTransmission() != 0) return false;          // pas d'ACK -> capteur absent/mauvais cablage
+  // NB : le TF-Luna partage le bus Qwiic (Wire1) avec la carte moteur
+  // (0x34) et le gyro (0x68). Son adresse 0x10 n'entre pas en conflit.
+  Wire1.beginTransmission(TFL_ADDR);
+  Wire1.write(TFL_REG_DIST_LOW);
+  if (Wire1.endTransmission() != 0) return false;         // pas d'ACK -> capteur absent/mauvais cablage
 
-  uint8_t n = Wire.requestFrom((uint8_t)TFL_ADDR, (uint8_t)6);
+  uint8_t n = Wire1.requestFrom((uint8_t)TFL_ADDR, (uint8_t)6);
   if (n < 6) return false;
 
   uint8_t b[6];
-  for (int i = 0; i < 6; i++) b[i] = Wire.read();
+  for (int i = 0; i < 6; i++) b[i] = Wire1.read();
 
   uint16_t dist =  b[0] | (b[1] << 8);
   uint16_t amp  =  b[2] | (b[3] << 8);
@@ -198,8 +200,8 @@ void CentrerLidar(float vitesseDps) { DeplaceServo(SERVO_CENTRE, vitesseDps); }
 
 // 3e. Verifie la presence du capteur sur le bus I2C (debug).
 bool tfLunaPresent() {
-  Wire.beginTransmission(TFL_ADDR);
-  return (Wire.endTransmission() == 0);
+  Wire1.beginTransmission(TFL_ADDR);
+  return (Wire1.endTransmission() == 0);
 }
 
 // 3f. Impression lisible d'un echantillon (debug Serial).

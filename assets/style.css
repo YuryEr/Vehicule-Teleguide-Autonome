@@ -450,3 +450,34 @@ body {
 .feu-vert     { background: #16a34a; color: #fff; }
 .lignes-ok    { background: #1d4ed8; color: #fff; }
 .lignes-non   { background: #333; color: #999; }
+
+/* ----------------------------------------------------------------
+   CAPTEURS DE DISTANCE (sonar + lidar)
+---------------------------------------------------------------- */
+#panneau-capteurs {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    margin-top: 8px;
+}
+
+.capteur {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid;
+    font-family: "Roboto Mono", monospace;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.capteur-nom    { font-size: 10px; font-weight: 700; letter-spacing: 1px; }
+.capteur-valeur { font-size: 15px; font-weight: 700; }
+
+.capteur-inconnu  { background: #F0F0F0; color: #888;    border-color: #CCC;    }
+.capteur-ok       { background: #E8F4EC; color: #16A56A; border-color: #A8DCC0; }
+.capteur-prudence { background: #FFF5E0; color: #A06000; border-color: #FFD080; }
+.capteur-danger   { background: #F9E3E3; color: #C03030; border-color: #E8A8A8; }

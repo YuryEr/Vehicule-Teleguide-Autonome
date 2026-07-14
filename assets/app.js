@@ -509,3 +509,33 @@ socket.on('etat_lignes', (data) => {
     detectionsActives.lignes = data.detecte ? 'Lignes detectees' : null;
     mettreAJourDetectionTexte();
 });
+
+
+// ======================== Capteurs de distance ========================
+// Seuils d'alerte (cm) : <= DANGER rouge, <= PRUDENCE orange, sinon vert.
+const CAPTEUR_SEUIL_DANGER   = 20;
+const CAPTEUR_SEUIL_PRUDENCE = 50;
+
+function afficherCapteur(prefixe, valeurCm) {
+    const bloc  = document.getElementById(`capteur-${prefixe}`);
+    const champ = document.getElementById(`valeur-${prefixe}`);
+    if (!bloc || !champ) return;
+
+    // null (Bridge indispo) ou -1 (lecture MCU invalide) => inconnu
+    if (valeurCm === null || valeurCm === undefined || valeurCm < 0) {
+        champ.textContent = '-- cm';
+        bloc.className    = 'capteur capteur-inconnu';
+        return;
+    }
+
+    champ.textContent = `${valeurCm} cm`;
+    let etat = 'capteur-ok';
+    if (valeurCm <= CAPTEUR_SEUIL_DANGER)        etat = 'capteur-danger';
+    else if (valeurCm <= CAPTEUR_SEUIL_PRUDENCE) etat = 'capteur-prudence';
+    bloc.className = `capteur ${etat}`;
+}
+
+socket.on('etat_capteurs', (data) => {
+    afficherCapteur('sonar', data.sonar_cm);
+    afficherCapteur('lidar', data.lidar_cm);
+});

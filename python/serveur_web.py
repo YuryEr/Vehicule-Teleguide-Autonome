@@ -161,6 +161,23 @@ def _tache_vision():
             bv.traiter(frame)
         socketio.sleep(0.05)
 
+
+# ======================== Capteurs de distance (sonar + lidar) ========================
+
+def _tache_capteurs():
+    """Interroge le MCU pour les distances sonar/lidar et les pousse a l'UI.
+
+    Le MCU met les mesures en cache (lecture non bloquante cote sketch) ;
+    ici on se contente de les relire via le Bridge et de les diffuser aux
+    clients web, comme pour la vision (etat_feu / etat_lignes).
+    """
+    while True:
+        socketio.emit('etat_capteurs', {
+            'sonar_cm': comm_bridge.lire_sonar_cm(),
+            'lidar_cm': comm_bridge.lire_lidar_cm(),
+        })
+        socketio.sleep(0.15)
+
 # ======================== Socket — Connexion ========================
 
 @socketio.on('connect')
@@ -414,4 +431,5 @@ def demarrer_serveur():
     print(f"[web] Serveur demarre sur http://0.0.0.0:{PORT_WEB}")
     socketio.start_background_task(_tache_capture)
     socketio.start_background_task(_tache_vision)
+    socketio.start_background_task(_tache_capteurs)
     socketio.run(app, host='0.0.0.0', port=PORT_WEB, debug=False)
