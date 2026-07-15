@@ -17,6 +17,7 @@ Sources :
 """
 
 import os
+import time
 import cv2
 import eventlet
 import eventlet.tpool
@@ -24,9 +25,9 @@ from flask import Flask, Response
 from flask_socketio import SocketIO
 
 import comm_bridge
+import navigation
 import vision as module_vision
 from boucle_vision import BoucleVision
-import navigation
 
 
 # ======================== Configuration ========================
@@ -40,7 +41,8 @@ CHEMIN_ASSETS = os.path.join(
 app = Flask(__name__,
             static_folder=CHEMIN_ASSETS,
             static_url_path='')
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet",
+                    ping_timeout=60, ping_interval=25)
 
 # ======================== Etat global ========================
 
@@ -379,14 +381,22 @@ def _executer_sequence(sequence):
 
 
 def _mouvement_bloquant(fonction_bridge, valeur):
-    fonction_bridge(abs(float(valeur)))
+    eventlet.tpool.execute(fonction_bridge, abs(float(valeur)))
+    socketio.sleep(0.3)
+    debut = time.time()
     while True:
         if sequence_stop:
-            comm_bridge.arreter_mouvement()
+            eventlet.tpool.execute(comm_bridge.arreter_mouvement)
             return False
-        if not comm_bridge.mouvement_actif():
+        if time.time() - debut > 10:
+            eventlet.tpool.execute(comm_bridge.arreter_mouvement)
+            socketio.sleep(0.3)
             return True
-        socketio.sleep(0.05)
+        actif = eventlet.tpool.execute(comm_bridge.mouvement_actif)
+        if not actif:
+            socketio.sleep(0.3)
+            return True
+        socketio.sleep(0.2)
 
 
 def _sleep_interruptible(duree):

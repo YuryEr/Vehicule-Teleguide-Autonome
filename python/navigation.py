@@ -25,21 +25,27 @@ CORRECTION_MAX = 0.3
 # ======================== Etat interne ========================
 
 _actif = False
+_derniere_correction = None
+_dernier_detecte = None
 
 
 # ======================== Activation ========================
 
 def activer():
     """Active le suivi de ligne autonome."""
-    global _actif
+    global _actif, _derniere_correction, _dernier_detecte
     _actif = True
+    _derniere_correction = None
+    _dernier_detecte = None
     print("[nav] Mode autonome active")
 
 
 def desactiver():
     """Desactive la navigation et arrete les moteurs."""
-    global _actif
+    global _actif, _derniere_correction, _dernier_detecte
     _actif = False
+    _derniere_correction = None
+    _dernier_detecte = None
     comm_bridge.envoyer_joystick(0, 0)
     print("[nav] Mode autonome desactive")
 
@@ -56,13 +62,23 @@ def traiter_lignes(detecte, ecart):
     detecte — True si des lignes sont detectees
     ecart   — deviation laterale en pixels (positif = droite)
     """
+    global _derniere_correction, _dernier_detecte
+
     if not _actif:
         return
 
     if not detecte:
-        comm_bridge.envoyer_joystick(0, 0)
+        if _dernier_detecte is not False:
+            comm_bridge.envoyer_joystick(0, 0)
+            _dernier_detecte = False
+            _derniere_correction = None
         return
 
     correction = -KP_LATERAL * ecart
     correction = max(-CORRECTION_MAX, min(CORRECTION_MAX, correction))
-    comm_bridge.envoyer_joystick(correction, VITESSE_AVANT)
+    correction = round(correction, 2)
+
+    if correction != _derniere_correction:
+        comm_bridge.envoyer_joystick(correction, VITESSE_AVANT)
+        _derniere_correction = correction
+        _dernier_detecte = True

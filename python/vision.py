@@ -35,18 +35,13 @@ Donnees :
 Code adapte de : YOLO Live Object Detection (Arduino App Lab, 2025)
 
 API publique :
-    initialiser_camera(index)       Demarre la capture
     initialiser_modele()            Charge YOLOv8n ONNX
-    arreter_camera()                Arrete la capture
-    derniere_image()                -> np.ndarray ou None
     detecter_feux(frame)            -> [(x1, y1, x2, y2, confiance)]
     classifier_couleur_feu(crop)    -> COULEUR_*
     detecter_lignes(frame)          -> (detecte, ecart_px)
 """
 
 import os
-import time
-import threading
 
 import cv2
 import numpy as np
@@ -54,10 +49,6 @@ import onnxruntime as ort
 
 
 # ======================== Constantes ========================
-
-INDEX_CAMERA_DEFAUT = int(os.getenv("INDEX_CAMERA", "2"))
-LARGEUR_CAMERA      = 640
-HAUTEUR_CAMERA      = 480
 
 CHEMIN_MODELE = os.getenv(
     "CHEMIN_MODELE",
@@ -91,71 +82,18 @@ _PLAGES_HSV = {
     COULEUR_VERT:  [((40, 60, 60),  (90, 255, 255))],
 }
 
-ROI_HAUT_LIGNES  = 0.60
-SEUIL_LIGNE      = 120
-PIXELS_MIN_LIGNE = 500
-REDUCTION_LIGNES = 0.5
+ROI_HAUT_LIGNES    = 0.60
+SEUIL_LIGNE        = 120
+PIXELS_MIN_LIGNE   = 800
 
 
 # ======================== Etat interne ========================
 
-_camera     = None
 _session    = None
 _nom_entree = None
 
 
-# ======================== Capture camera ========================
-
-class CaptureCamera:
-    """Thread dedie qui garde uniquement la derniere frame
-    pour eviter le lag du buffer V4L2."""
-
-    def __init__(self, index):
-        self._cap = cv2.VideoCapture(index, cv2.CAP_V4L2)
-        self._cap.set(cv2.CAP_PROP_FOURCC,
-                      cv2.VideoWriter_fourcc(*"MJPG"))
-        self._cap.set(cv2.CAP_PROP_FRAME_WIDTH,  LARGEUR_CAMERA)
-        self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HAUTEUR_CAMERA)
-        self._cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
-        if not self._cap.isOpened():
-            raise RuntimeError(
-                f"Impossible d'ouvrir /dev/video{index}. "
-                "Verifier v4l2-ctl --list-devices et INDEX_CAMERA."
-            )
-        self._frame = None
-        self._lock  = threading.Lock()
-        self._actif = True
-        threading.Thread(target=self._boucle, daemon=True).start()
-        print(f"[vision] Camera index {index} "
-              f"({LARGEUR_CAMERA}x{HAUTEUR_CAMERA})")
-
-    def _boucle(self):
-        while self._actif:
-            ok, frame = self._cap.read()
-            if ok:
-                with self._lock:
-                    self._frame = frame
-            else:
-                time.sleep(0.01)
-
-    def lire(self):
-        with self._lock:
-            return None if self._frame is None else self._frame.copy()
-
-    def arreter(self):
-        self._actif = False
-        self._cap.release()
-
-
 # ======================== Initialisation ========================
-
-def initialiser_camera(index=INDEX_CAMERA_DEFAUT):
-    """Demarre la capture camera dans un thread dedie."""
-    global _camera
-    if _camera is not None:
-        _camera.arreter()
-    _camera = CaptureCamera(index)
-
 
 def initialiser_modele():
     """Charge le modele YOLOv8n ONNX. Appeler une fois au demarrage."""
@@ -184,21 +122,6 @@ def initialiser_modele():
         providers=["CPUExecutionProvider"]
     )
     _nom_entree = _session.get_inputs()[0].name
-
-
-def arreter_camera():
-    """Arrete proprement la capture camera."""
-    global _camera
-    if _camera is not None:
-        _camera.arreter()
-        _camera = None
-
-
-def derniere_image():
-    """Retourne la derniere frame capturee, ou None."""
-    if _camera is None:
-        return None
-    return _camera.lire()
 
 
 # ======================== Detection feux (YOLOv8n) ========================
@@ -282,13 +205,13 @@ def classifier_couleur_feu(image_recadree):
     return meilleure if meilleur_n >= _PIXELS_COULEUR_MIN else COULEUR_AUCUNE
 
 
-# ======================== Lignes de route (Canny + Hough) ========================
+# ======================== Lignes de route (seuillage + centroide) ========================
 
 def detecter_lignes(frame):
     """Retourne (detecte, ecart_px).
     ecart_px positif = decale a droite, negatif = a gauche.
 
-    Algorithme : seuillage adaptatif sur la ligne noire,
+    Algorithme : seuillage sur la ligne noire,
     calcul du centroide dans la region d'interet.
     Reference : Adaptive Thresholding — OpenCV documentation
     https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html
@@ -300,16 +223,11 @@ def detecter_lignes(frame):
 
     _, masque = cv2.threshold(gris, SEUIL_LIGNE, 255, cv2.THRESH_BINARY_INV)
 
-    moments = cv2.moments(masque)
-    if moments["m00"] < PIXELS_MIN_LIGNE:
+    nb_pixels = cv2.countNonZero(masque)
+    if nb_pixels < PIXELS_MIN_LIGNE:
         return False, 0
 
+    moments = cv2.moments(masque)
     cx = int(moments["m10"] / moments["m00"])
     ecart = cx - (masque.shape[1] // 2)
-    
-    moments = cv2.moments(masque)
-    print(f"[lignes] pixels noirs: {int(moments['m00']/255)}, seuil: {SEUIL_LIGNE}")
-    if moments["m00"] < PIXELS_MIN_LIGNE:
-        return False, 0
-        
     return True, ecart
