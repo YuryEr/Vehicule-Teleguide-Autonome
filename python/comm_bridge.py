@@ -57,6 +57,13 @@ def envoyer_joystick(x, y):
     _appeler("joy_x", float(x))
     _appeler("joy_y", float(y))
 
+def envoyer_roues(gauche, droite):
+    """Envoie une vitesse positive a chaque cote (suivi de ligne).
+
+    gauche — vitesse cote gauche (0 a 100, positif)
+    droite — vitesse cote droit (0 a 100, positif)
+    """
+    _appeler("roues", int(gauche), int(droite))
 
 # ======================== Deplacements asservis ========================
 

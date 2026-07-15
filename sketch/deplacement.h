@@ -33,6 +33,23 @@ void Deplacement_JoystickX(float x);
 void Deplacement_JoystickY(float y);
 
 /*
+ * Deplacement_Roues
+ *
+ * APPLIQUE DIRECTEMENT UNE VITESSE POSITIVE A CHAQUE COTE POUR
+ * LE SUIVI DE LIGNE. LES DEUX ROUES AVANCENT ; LA DIFFERENCE DE
+ * VITESSE ASSURE LA DIRECTION. IGNORE SI UN DEPLACEMENT ASSERVI
+ * EST EN COURS.
+ *
+ * PARAMETRES :
+ * gauche — VITESSE COTE GAUCHE (0 A 100)
+ * droite — VITESSE COTE DROIT (0 A 100)
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Deplacement_Roues(int gauche, int droite);
+
+/*
  * Deplacement_AvancerMetres
  *
  * DEMARRE UN DEPLACEMENT RECTILIGNE VERS L'AVANT, ASSERVI PAR
