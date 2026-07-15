@@ -83,7 +83,6 @@ _PLAGES_HSV = {
 }
 
 ROI_HAUT_LIGNES    = 0.60
-SEUIL_LIGNE        = 180
 PIXELS_MIN_LIGNE   = 800
 
 
@@ -211,7 +210,7 @@ def detecter_lignes(frame):
     """Retourne (detecte, ecart_px).
     ecart_px positif = decale a droite, negatif = a gauche.
 
-    Algorithme : seuillage sur la ligne noire,
+    Algorithme : seuillage adaptatif sur la ligne noire,
     calcul du centroide dans la region d'interet.
     Reference : Adaptive Thresholding — OpenCV documentation
     https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html
@@ -221,7 +220,13 @@ def detecter_lignes(frame):
     gris = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     gris = cv2.GaussianBlur(gris, (5, 5), 0)
 
-    _, masque = cv2.threshold(gris, SEUIL_LIGNE, 255, cv2.THRESH_BINARY_INV)
+    masque = cv2.adaptiveThreshold(
+        gris, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY_INV, 51, 15
+    )
+
+    noyau = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    masque = cv2.morphologyEx(masque, cv2.MORPH_OPEN, noyau)
 
     nb_pixels = cv2.countNonZero(masque)
     if nb_pixels < PIXELS_MIN_LIGNE:
@@ -230,12 +235,4 @@ def detecter_lignes(frame):
     moments = cv2.moments(masque)
     cx = int(moments["m10"] / moments["m00"])
     ecart = cx - (masque.shape[1] // 2)
-
-    _, masque = cv2.threshold(gris, SEUIL_LIGNE, 255, cv2.THRESH_BINARY_INV)
-
-    nb_pixels = cv2.countNonZero(masque)
-    print(f"[lignes] nb_pixels={nb_pixels}, seuil={SEUIL_LIGNE}")
-    if nb_pixels < PIXELS_MIN_LIGNE:
-        return False, 0
-
     return True, ecart
