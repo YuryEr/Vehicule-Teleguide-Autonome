@@ -143,7 +143,6 @@ def _sur_changement_feu(present, couleur, confiance):
 
 
 def _sur_lignes_detectees(detecte, ecart):
-    print(f"[callback] detecte={detecte}, ecart={ecart}")
     socketio.emit('etat_lignes', {
         'detecte': detecte,
         'ecart': ecart,

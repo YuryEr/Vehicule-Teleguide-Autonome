@@ -75,5 +75,4 @@ def traiter_lignes(detecte, ecart):
     gauche = int(max(0, min(100, VITESSE_BASE + correction)))
     droite = int(max(0, min(100, VITESSE_BASE - correction)))
 
-    print(f"[nav] ecart={ecart:+d} gauche={gauche} droite={droite}")
     comm_bridge.envoyer_roues(gauche, droite)

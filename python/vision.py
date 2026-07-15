@@ -235,12 +235,4 @@ def detecter_lignes(frame):
     moments = cv2.moments(masque)
     cx = int(moments["m10"] / moments["m00"])
     ecart = cx - (masque.shape[1] // 2)
-
-    masque = cv2.morphologyEx(masque, cv2.MORPH_OPEN, noyau)
-
-    nb_pixels = cv2.countNonZero(masque)
-    print(f"[lignes] nb_pixels={nb_pixels}")
-    if nb_pixels < PIXELS_MIN_LIGNE:
-        return False, 0
-        
     return True, ecart
