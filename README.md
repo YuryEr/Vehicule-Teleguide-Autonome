@@ -36,11 +36,13 @@ Vehicule teleguide autonome — PFE ELE795, Ecole de technologie superieure, ete
 - Webcam USB branchee sur le hub USB de la carte
 
 ### Etape 1 : Configuration du arduino uno q en mode point d'accès
-```yaml
-# Créé un point d'accès (AP). Remplacer le SSID/mot de passe.
-`nmcli device wifi hotspot ssid TankETS password tank1234 ifname wlan0`
 
+# Créé un point d'accès (AP). Remplacer le SSID/mot de passe.
+```yaml
+`nmcli device wifi hotspot ssid TankETS password tank1234 ifname wlan0`
+```
 # Appliquer automatiquement à chaque démarrage :
+```yaml
 `nmcli connection modify Hotspot connection.autoconnect yes`
 ```
 
