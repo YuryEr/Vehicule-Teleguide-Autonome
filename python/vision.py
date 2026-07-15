@@ -83,7 +83,7 @@ _PLAGES_HSV = {
 }
 
 ROI_HAUT_LIGNES    = 0.60
-SEUIL_LIGNE        = 120
+SEUIL_LIGNE        = 180
 PIXELS_MIN_LIGNE   = 800
 
 
@@ -230,4 +230,12 @@ def detecter_lignes(frame):
     moments = cv2.moments(masque)
     cx = int(moments["m10"] / moments["m00"])
     ecart = cx - (masque.shape[1] // 2)
+
+    _, masque = cv2.threshold(gris, SEUIL_LIGNE, 255, cv2.THRESH_BINARY_INV)
+
+    nb_pixels = cv2.countNonZero(masque)
+    print(f"[lignes] nb_pixels={nb_pixels}, seuil={SEUIL_LIGNE}")
+    if nb_pixels < PIXELS_MIN_LIGNE:
+        return False, 0
+
     return True, ecart
