@@ -39,11 +39,11 @@ Vehicule teleguide autonome — PFE ELE795, Ecole de technologie superieure, ete
 
 # Créé un point d'accès (AP). Remplacer le SSID/mot de passe.
 ```yaml
-`nmcli device wifi hotspot ssid TankETS password tank1234 ifname wlan0`
+nmcli device wifi hotspot ssid TankETS password tank1234 ifname wlan0
 ```
 # Appliquer automatiquement à chaque démarrage :
 ```yaml
-`nmcli connection modify Hotspot connection.autoconnect yes`
+nmcli connection modify Hotspot connection.autoconnect yes
 ```
 
 ### Etape 2 : Configuration des ports
