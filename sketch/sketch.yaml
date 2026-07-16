@@ -5,7 +5,10 @@ profiles:
       - platform: arduino:zephyr
     libraries:
       - Servo (1.3.0)
-      - Adafruit GFX Library (1.12.6)
-      - Adafruit ILI9341 (1.6.3)
+      # Ecran TFT desactive : la pile Adafruit GFX/ILI9341/BusIO ne compile
+      # pas sur le core Zephyr de l'UNO Q (acces registres AVR). Voir
+      # display_wip/. Reactiver avec une lib compatible Zephyr.
+      # - Adafruit GFX Library (1.12.6)
+      # - Adafruit ILI9341 (1.6.3)
       - Adafruit BusIO (1.14.0)
 default_profile: default
