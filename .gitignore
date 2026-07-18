@@ -1,2 +1,34 @@
 # ignore app cache folder
 .cache/
+
+# ==============================
+#  Fichiers SolidWorks (natifs)
+# ==============================
+*.sldprt
+*.sldasm
+*.slddrw
+*.SLDPRT
+*.SLDASM
+*.SLDDRW
+
+# Fichiers temporaires SolidWorks
+~$*.sldprt
+~$*.sldasm
+~$*.slddrw
+*.swp
+*.sldprt.~lock
+
+# ==============================
+#  Autres binaires lourds
+# ==============================
+*.zip
+*.rar
+*.7z
+
+# ==============================
+#  Système
+# ==============================
+Thumbs.db
+.DS_Store
+desktop.ini
+.venv/

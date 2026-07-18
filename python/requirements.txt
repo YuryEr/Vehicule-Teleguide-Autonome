@@ -1,4 +1,9 @@
+# Serveur web
 flask
 flask-socketio
-opencv-python-headless
 eventlet
+
+# Vision (detection routiere)
+onnxruntime
+numpy
+opencv-python-headless
