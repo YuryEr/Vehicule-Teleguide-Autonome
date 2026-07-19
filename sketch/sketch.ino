@@ -4,12 +4,13 @@
 #include "moteurs.h"
 #include "imu.h"
 #include "deplacement.h"
+#include "leds.h"
 #include "comm_bridge.h"
 
 // ======================== LEDs ========================
 
-static void rpc_mode_led1(int mode) { /* TODO: hardware LED */ }
-static void rpc_mode_led2(int mode) { /* TODO: hardware LED */ }
+static void rpc_mode_led1(int mode) { Leds_DefinirMode(1, mode); }
+static void rpc_mode_led2(int mode) { Leds_DefinirMode(2, mode); }
 
 // ======================== Setup ========================
 
@@ -21,6 +22,7 @@ void setup() {
     Moteurs_Initialiser();
     Imu_Initialiser();
     Imu_Calibrer();
+    Leds_Initialiser();
 
     CommBridge_Initialiser();
 
@@ -45,4 +47,5 @@ void setup() {
 void loop() {
     Bridge.update();
     Deplacement_MettreAJour();
+    Leds_Initialiser();
 }
