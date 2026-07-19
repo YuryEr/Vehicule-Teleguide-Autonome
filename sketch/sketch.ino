@@ -26,6 +26,7 @@ void setup() {
 
     Bridge.provide_safe("joy_x",              Deplacement_JoystickX);
     Bridge.provide_safe("joy_y",              Deplacement_JoystickY);
+    Bridge.provide_safe("roues",              Deplacement_Roues);
     Bridge.provide_safe("avancer_metres",     Deplacement_AvancerMetres);
     Bridge.provide_safe("reculer_metres",     Deplacement_ReculerMetres);
     Bridge.provide_safe("tourner_gauche_deg", Deplacement_TournerGauche);

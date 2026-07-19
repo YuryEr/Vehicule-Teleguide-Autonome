@@ -286,6 +286,7 @@ function chargerVideo() {
 }
 
 videoStream.onerror = () => {
+    if (!cameraActive) return;
     videoStream.style.display = 'none';
     placeholder.style.display = 'flex';
     placeholder.querySelector('.feedback-text').textContent =

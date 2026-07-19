@@ -17,15 +17,17 @@ Sources :
 """
 
 import os
+import time
 import cv2
+import eventlet
+import eventlet.tpool
 from flask import Flask, Response
 from flask_socketio import SocketIO
 
 import comm_bridge
+import navigation
 import vision as module_vision
 from boucle_vision import BoucleVision
-
-
 
 
 # ======================== Configuration ========================
@@ -39,7 +41,8 @@ CHEMIN_ASSETS = os.path.join(
 app = Flask(__name__,
             static_folder=CHEMIN_ASSETS,
             static_url_path='')
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet",
+                    ping_timeout=60, ping_interval=25)
 
 # ======================== Etat global ========================
 
@@ -98,7 +101,7 @@ def _tache_capture():
         if cam is None:
             socketio.sleep(2)
             continue
-        ret, frame = cam.read()
+        ret, frame = eventlet.tpool.execute(cam.read)
         if not ret:
             camera = None
             socketio.sleep(0.5)
@@ -113,8 +116,10 @@ def generer_flux():
         if frame is None:
             socketio.sleep(0.1)
             continue
-        _, jpeg = cv2.imencode('.jpg', frame,
-                               [cv2.IMWRITE_JPEG_QUALITY, 60])
+        _, jpeg = eventlet.tpool.execute(
+            cv2.imencode, '.jpg', frame,
+            [cv2.IMWRITE_JPEG_QUALITY, 60]
+        )
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n'
                + jpeg.tobytes() + b'\r\n')
@@ -143,6 +148,7 @@ def _sur_lignes_detectees(detecte, ecart):
         'ecart': ecart,
     })
     comm_bridge.notifier_lignes(detecte, ecart)
+    navigation.traiter_lignes(detecte, ecart)
 
 
 def _tache_vision():
@@ -158,7 +164,7 @@ def _tache_vision():
     while True:
         frame = derniere_frame
         if frame is not None:
-            bv.traiter(frame)
+            eventlet.tpool.execute(bv.traiter, frame)
         socketio.sleep(0.05)
 
 # ======================== Socket — Connexion ========================
@@ -177,7 +183,7 @@ def on_disconnect():
 
 @socketio.on('joystick')
 def on_joystick(data):
-    if sequence_en_cours:
+    if sequence_en_cours or navigation.est_actif():
         return
     x = float(data.get("x", 0))
     y = float(data.get("y", 0))
@@ -192,6 +198,10 @@ def on_changer_mode(data):
     etat["mode"] = nouveau_mode
     print(f"[web] Mode vehicule -> {nouveau_mode}")
     socketio.emit("mode_actuel", {"mode": nouveau_mode})
+    if nouveau_mode == "autonome":
+        navigation.activer()
+    else:
+        navigation.desactiver()
 
 
 @socketio.on('toggle_camera')
@@ -371,14 +381,22 @@ def _executer_sequence(sequence):
 
 
 def _mouvement_bloquant(fonction_bridge, valeur):
-    fonction_bridge(abs(float(valeur)))
+    eventlet.tpool.execute(fonction_bridge, abs(float(valeur)))
+    socketio.sleep(0.3)
+    debut = time.time()
     while True:
         if sequence_stop:
-            comm_bridge.arreter_mouvement()
+            eventlet.tpool.execute(comm_bridge.arreter_mouvement)
             return False
-        if not comm_bridge.mouvement_actif():
+        if time.time() - debut > 10:
+            eventlet.tpool.execute(comm_bridge.arreter_mouvement)
+            socketio.sleep(0.3)
             return True
-        socketio.sleep(0.05)
+        actif = eventlet.tpool.execute(comm_bridge.mouvement_actif)
+        if not actif:
+            socketio.sleep(0.3)
+            return True
+        socketio.sleep(0.2)
 
 
 def _sleep_interruptible(duree):

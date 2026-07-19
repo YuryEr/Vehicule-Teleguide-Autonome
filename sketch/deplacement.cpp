@@ -36,6 +36,11 @@ void Deplacement_JoystickY(float y) {
     Moteurs_DefinirVitesse(gauche, droite);
 }
 
+void Deplacement_Roues(int gauche, int droite) {
+    if (etatMouvement != INACTIF) return;
+    Moteurs_DefinirVitesse(gauche, droite);
+}
+
 // ======================== Demarrage mouvements ========================
 
 static void demarrerAvance(float distance_m, int sens) {
