@@ -5,13 +5,8 @@
 #include "imu.h"
 #include "deplacement.h"
 #include "leds.h"
+#include "ecran.h"
 #include "comm_bridge.h"
-
-// ===== TEST ECRAN TEMPORAIRE (a retirer apres validation) =====
-#include "SPI.h"
-#include "Adafruit_GFX.h"
-#include "Adafruit_ILI9341.h"
-static Adafruit_ILI9341 ecranTest = Adafruit_ILI9341(10, 9, 8);  // CS, DC, RST
 
 // ======================== LEDs ========================
 
@@ -21,16 +16,6 @@ static void rpc_mode_led2(int mode) { Leds_DefinirMode(2, mode); }
 // ======================== Setup ========================
 
 void setup() {
-    
-    // ===== TEST ECRAN TEMPORAIRE =====
-    ecranTest.begin();
-    ecranTest.setRotation(1);
-    ecranTest.fillScreen(ILI9341_BLUE);
-    ecranTest.setTextColor(ILI9341_WHITE);
-    ecranTest.setTextSize(4);
-    ecranTest.setCursor(40, 100);
-    ecranTest.print("TankETS");
-    
     Serial.begin(9600);
     Wire1.begin();
     delay(500);
@@ -53,6 +38,7 @@ void setup() {
     Imu_Initialiser();
     Imu_Calibrer();
     Leds_Initialiser();
+    Ecran_Initialiser();
 
     Moteurs_Arreter();
     Serial.println("[MCU] TankETS pret — Bridge actif");
