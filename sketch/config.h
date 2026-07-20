@@ -36,7 +36,7 @@
 #define TIMEOUT_AVANCE_MS     12000
 #define TIMEOUT_ROTATION_MS   8000
 
-// Bandeaux LED adressables (WS2813, protocole WS2812 / 800 kHz)
+// Bandeaux LED adressables (WS2812B, protocole 800 kHz)
 #define PIN_BANDEAU_1          6
 #define PIN_BANDEAU_2          9
 #define NB_LEDS_PAR_BANDEAU    5

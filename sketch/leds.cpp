@@ -64,14 +64,6 @@ void Leds_Initialiser(void) {
     bandeau1.setBrightness(LUMINOSITE_LEDS);
     bandeau2.setBrightness(LUMINOSITE_LEDS);
 
-    
-     // --- Test visuel au demarrage (a retirer apres validation) ---
-    Remplir(bandeau1, 0, 100, 0);
-    Remplir(bandeau2, 0, 100, 0);
-    delay(2000);
-    // -------------------------------------------------------------
-
-  
     Remplir(bandeau1, 0, 0, 0);
     Remplir(bandeau2, 0, 0, 0);
     statique1 = true;
