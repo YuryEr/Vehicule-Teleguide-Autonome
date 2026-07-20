@@ -93,4 +93,4 @@ void Leds_DefinirMode(int bandeau, int mode) {
 void Leds_MettreAJour(void) {
     Animer(bandeau1, mode1, timer1, alternance1, statique1);
     Animer(bandeau2, mode2, timer2, alternance2, statique2);
-}3
+}

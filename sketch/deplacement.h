@@ -2,7 +2,6 @@
 #define DEPLACEMENT_H
 
 #include <Arduino.h>
-#include "leds.h"
 
 /*
  * Deplacement_JoystickX

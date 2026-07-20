@@ -164,7 +164,10 @@ def _tache_vision():
     while True:
         frame = derniere_frame
         if frame is not None:
-            eventlet.tpool.execute(bv.traiter, frame)
+            try:
+                eventlet.tpool.execute(bv.traiter, frame)
+            except Exception as e:
+                print(f"[vision] erreur frame ignoree : {e}")
         socketio.sleep(0.05)
 
 # ======================== Socket — Connexion ========================
