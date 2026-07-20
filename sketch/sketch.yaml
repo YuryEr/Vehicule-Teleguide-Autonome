@@ -5,7 +5,4 @@ profiles:
       - platform: arduino:zephyr
     libraries:
       - Adafruit NeoPixel (1.12.0)
-      - Adafruit GFX Library (1.11.9)
-      - Adafruit ILI9341 (1.6.1)
-      - Adafruit BusIO (1.14.0)
 default_profile: default
