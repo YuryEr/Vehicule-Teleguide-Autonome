@@ -6,16 +6,20 @@
 #include "deplacement.h"
 #include "leds.h"
 #include "comm_bridge.h"
+#include <Adafruit_NeoPixel.h>
 
 
 // ======================== LEDs ========================
-
+Adafruit_NeoPixel testStrip(5, 6, NEO_GRB + NEO_KHZ800);
 static void rpc_mode_led1(int mode) { Leds_DefinirMode(1, mode); }
 static void rpc_mode_led2(int mode) { Leds_DefinirMode(2, mode); }
 
 // ======================== Setup ========================
 
 void setup() {
+    
+    Leds_Initialiser();
+
     Serial.begin(9600);
     Wire1.begin();
     delay(500);
@@ -37,7 +41,7 @@ void setup() {
     Moteurs_Initialiser();
     Imu_Initialiser();
     Imu_Calibrer();
-    Leds_Initialiser();
+    
 
     Moteurs_Arreter();
     Serial.println("[MCU] TankETS pret — Bridge actif");

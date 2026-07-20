@@ -39,7 +39,7 @@
 // Bandeaux LED adressables (WS2813, protocole WS2812 / 800 kHz)
 #define PIN_BANDEAU_1          6
 #define PIN_BANDEAU_2          9
-#define NB_LEDS_PAR_BANDEAU    4
+#define NB_LEDS_PAR_BANDEAU    5
 #define LUMINOSITE_LEDS        60      // 0-255
 #define PERIODE_GYROPHARE_MS   250
 #define PERIODE_CLIGNOTANT_MS  400
