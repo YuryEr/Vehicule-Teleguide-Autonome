@@ -8,11 +8,15 @@ from pathlib import Path
 
 requirements = Path(__file__).parent / "requirements.txt"
 if requirements.exists():
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install",
-         "-r", str(requirements), "--quiet"],
-        stdout=subprocess.DEVNULL
-    )
+    try:
+        subprocess.check_call(
+            [sys.executable, "-m", "pip", "install",
+             "-r", str(requirements), "--quiet"],
+            stdout=subprocess.DEVNULL
+        )
+    except Exception as e:
+        print(f"[main] Install pip ignoree ({e}) — "
+              "dependances supposees deja presentes.")
 
 from serveur_web import demarrer_serveur
 

@@ -25,13 +25,8 @@ void setup() {
     Wire1.begin();
     delay(500);
 
-    Moteurs_Initialiser();
-    Imu_Initialiser();
-    Imu_Calibrer();
-    Leds_Initialiser();
-
+    // Bridge en premier : le controle survit a un capteur defaillant
     CommBridge_Initialiser();
-
     Bridge.provide_safe("joy_x",              Deplacement_JoystickX);
     Bridge.provide_safe("joy_y",              Deplacement_JoystickY);
     Bridge.provide_safe("roues",              Deplacement_Roues);
@@ -43,6 +38,11 @@ void setup() {
     Bridge.provide_safe("mouvement_actif",    Deplacement_EstActif);
     Bridge.provide_safe("mode_led1",          rpc_mode_led1);
     Bridge.provide_safe("mode_led2",          rpc_mode_led2);
+
+    Moteurs_Initialiser();
+    Imu_Initialiser();
+    Imu_Calibrer();
+    Leds_Initialiser();
 
     Moteurs_Arreter();
     Serial.println("[MCU] TankETS pret — Bridge actif");
