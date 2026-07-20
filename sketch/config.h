@@ -44,4 +44,9 @@
 #define PERIODE_GYROPHARE_MS   250
 #define PERIODE_CLIGNOTANT_MS  400
 
+// Ecran TFT ILI9341 (SPI materiel)
+#define PIN_TFT_CS   10
+#define PIN_TFT_DC   9
+#define PIN_TFT_RST  8
+
 #endif
