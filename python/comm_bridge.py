@@ -140,3 +140,13 @@ def notifier_lignes(detecte, ecart):
     ecart   — deviation laterale en pixels (signe)
     """
     _appeler("on_lignes", detecte, int(ecart))
+
+# ======================== Capteurs de distance ========================
+
+def lire_ultrason_cm():
+    """Distance frontale mesuree par le capteur ultrason HC-SR04.
+
+    Retourne : int — distance en cm (ULTRASON_DISTANCE_MAX = voie degagee),
+               None si la lecture Bridge echoue.
+    """
+    return _appeler_avec_retour("lire_ultrason_cm")

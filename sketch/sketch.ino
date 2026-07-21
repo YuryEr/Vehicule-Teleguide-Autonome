@@ -6,12 +6,17 @@
 #include "deplacement.h"
 #include "leds.h"
 #include "ecran.h"
+#include "ultrason.h"
 #include "comm_bridge.h"
 
 // ======================== LEDs ========================
 
 static void rpc_mode_led1(int mode) { Leds_DefinirMode(1, mode); }
 static void rpc_mode_led2(int mode) { Leds_DefinirMode(2, mode); }
+
+// ======================== Capteur ultrason ========================
+
+static int rpc_lire_ultrason_cm(void) { return Ultrason_DistanceCm(); }
 
 // ======================== Setup ========================
 
@@ -33,12 +38,14 @@ void setup() {
     Bridge.provide_safe("mouvement_actif",    Deplacement_EstActif);
     Bridge.provide_safe("mode_led1",          rpc_mode_led1);
     Bridge.provide_safe("mode_led2",          rpc_mode_led2);
+    Bridge.provide_safe("lire_ultrason_cm",   rpc_lire_ultrason_cm);
 
     Moteurs_Initialiser();
     Imu_Initialiser();
     Imu_Calibrer();
     Leds_Initialiser();
     Ecran_Initialiser();
+    Ultrason_Initialiser();
 
     Moteurs_Arreter();
     Serial.println("[MCU] TankETS pret — Bridge actif");
@@ -50,4 +57,5 @@ void loop() {
     Bridge.update();
     Deplacement_MettreAJour();
     Leds_MettreAJour();
+    Ultrason_MettreAJour();
 }

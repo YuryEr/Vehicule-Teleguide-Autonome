@@ -49,4 +49,10 @@
 #define PIN_TFT_DC   9
 #define PIN_TFT_RST  8
 
+// Capteur ultrason HC-SR04 (echo via pont diviseur 5V->3.3V)
+#define PIN_ULTRASON_TRIG      2
+#define PIN_ULTRASON_ECHO      3
+#define ULTRASON_DISTANCE_MAX  200    // portee utile (cm)
+#define ULTRASON_PERIODE_MS    100    // rafraichissement (~10 Hz)
+
 #endif
