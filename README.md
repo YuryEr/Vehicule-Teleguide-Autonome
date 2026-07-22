@@ -129,6 +129,17 @@ l'installation pip (enveloppee dans un `try/except`) et demarre le serveur avec 
 dependances deja presentes. Faire au moins un premier demarrage **connecte a Internet**
 pour que les dependances Python s'installent.
 
+### Etape 1 : Configuration du arduino uno q en mode point d'accès
+
+# Créé un point d'accès (AP). Remplacer le SSID/mot de passe.
+```yaml
+nmcli device wifi hotspot ssid TankETS password tank1234 ifname wlan0
+```
+# Appliquer automatiquement à chaque démarrage :
+```yaml
+nmcli connection modify Hotspot connection.autoconnect yes
+```
+
 ### Etape 2 : Configuration des ports
 
 Dans `app.yaml` a la racine du projet, s'assurer que le port du serveur web est expose :
