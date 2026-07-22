@@ -150,3 +150,11 @@ def lire_ultrason_cm():
                None si la lecture Bridge echoue.
     """
     return _appeler_avec_retour("lire_ultrason_cm")
+
+def lire_lidar_cm():
+    """Distance frontale mesuree par le LiDAR TF-Luna.
+
+    Retourne : int — distance en cm, -1 si lecture invalide,
+               None si la lecture Bridge echoue.
+    """
+    return _appeler_avec_retour("lire_lidar_cm")

@@ -4,6 +4,7 @@
 // Adresses I2C (bus Wire1 / Qwiic)
 #define ADRESSE_MOTEUR        0x34
 #define ADRESSE_GYRO          0x68
+#define ADRESSE_LIDAR         0x10
 
 // Registres carte moteur Hiwonder
 #define REG_TYPE_MOTEUR       20
@@ -54,5 +55,11 @@
 #define PIN_ULTRASON_ECHO      3
 #define ULTRASON_DISTANCE_MAX  200    // portee utile (cm)
 #define ULTRASON_PERIODE_MS    100    // rafraichissement (~10 Hz)
+
+// LiDAR TF-Luna (I2C sur Wire1 / Qwiic, broche CFG a la masse)
+#define REG_LIDAR_DIST        0x00    // 6 registres : dist L/H, force L/H, temp L/H
+#define LIDAR_FORCE_MIN       100     // en dessous : signal trop faible -> rejet
+#define LIDAR_DISTANCE_MAX    800     // portee fiable (cm)
+#define LIDAR_PERIODE_MS      100     // rafraichissement (~10 Hz)
 
 #endif
