@@ -158,3 +158,12 @@ def lire_lidar_cm():
                None si la lecture Bridge echoue.
     """
     return _appeler_avec_retour("lire_lidar_cm")
+
+# ======================== ServoMoteur ========================
+
+def definir_angle_servo(angle):
+    """Oriente le servo de balayage du LiDAR.
+
+    angle — degres (0 a 180, 90 = droit devant)
+    """
+    _appeler("servo_angle", int(max(0, min(180, angle))))

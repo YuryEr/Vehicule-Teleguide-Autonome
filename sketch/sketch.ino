@@ -9,6 +9,7 @@
 #include "ultrason.h"
 #include "lidar.h"
 #include "comm_bridge.h"
+#include "servo_lidar.h"
 
 // ======================== LEDs ========================
 
@@ -19,6 +20,10 @@ static void rpc_mode_led2(int mode) { Leds_DefinirMode(2, mode); }
 
 static int rpc_lire_ultrason_cm(void) { return Ultrason_DistanceCm(); }
 static int rpc_lire_lidar_cm(void)    { return Lidar_DistanceCm(); }
+
+// ======================== ServoMoteur ========================
+
+static void rpc_servo_angle(int angle) { ServoLidar_DefinirAngle(angle); }
 
 // ======================== Setup ========================
 
@@ -42,6 +47,7 @@ void setup() {
     Bridge.provide_safe("mode_led2",          rpc_mode_led2);
     Bridge.provide_safe("lire_ultrason_cm",   rpc_lire_ultrason_cm);
     Bridge.provide_safe("lire_lidar_cm",      rpc_lire_lidar_cm);
+    Bridge.provide_safe("servo_angle",        rpc_servo_angle);
 
     Moteurs_Initialiser();
     Imu_Initialiser();
@@ -50,6 +56,7 @@ void setup() {
     Ecran_Initialiser();
     Ultrason_Initialiser();
     Lidar_Initialiser();
+    ServoLidar_Initialiser();
 
     Moteurs_Arreter();
     Serial.println("[MCU] TankETS pret — Bridge actif");
@@ -63,4 +70,5 @@ void loop() {
     Leds_MettreAJour();
     Ultrason_MettreAJour();
     Lidar_MettreAJour();
+    ServoLidar_MettreAJour();
 }

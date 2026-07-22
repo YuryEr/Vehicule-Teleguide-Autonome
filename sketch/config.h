@@ -62,4 +62,11 @@
 #define LIDAR_DISTANCE_MAX    800     // portee fiable (cm)
 #define LIDAR_PERIODE_MS      100     // rafraichissement (~10 Hz)
 
+// Servo de balayage SG90 (support du LiDAR)
+#define PIN_SERVO             5       // D5 : libre (D9 = DC ecran)
+#define SERVO_ANGLE_MIN       0
+#define SERVO_ANGLE_MAX       180
+#define SERVO_ANGLE_CENTRE    90      // 90 deg = droit devant
+#define SERVO_MS_PAR_DEGRE    5       // 5 ms/deg ~= 200 deg/s (max SG90 ~300)
+
 #endif
