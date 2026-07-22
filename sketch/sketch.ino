@@ -11,6 +11,7 @@
 #include "comm_bridge.h"
 #include "servo_lidar.h"
 
+
 // ======================== LEDs ========================
 
 static void rpc_mode_led1(int mode) { Leds_DefinirMode(1, mode); }
@@ -72,7 +73,7 @@ void loop() {
     Lidar_MettreAJour();
     ServoLidar_MettreAJour();
 
-        // ===== TEST SERVO TEMPORAIRE (a retirer apres validation) =====
+    // ===== TEST SERVO TEMPORAIRE (a retirer apres validation) =====
     static unsigned long tServo = 0;
     static bool versMax = true;
     if (millis() - tServo > 2000) {        // toutes les 2s : change de cible

@@ -68,5 +68,7 @@
 #define SERVO_ANGLE_MAX       180
 #define SERVO_ANGLE_CENTRE    90      // 90 deg = droit devant
 #define SERVO_MS_PAR_DEGRE    5       // 5 ms/deg ~= 200 deg/s (max SG90 ~300)
+#define SERVO_PULSE_MIN_US    500     // largeur d'impulsion a 0 deg
+#define SERVO_PULSE_MAX_US    2500    // largeur d'impulsion a 180 deg
 
 #endif
