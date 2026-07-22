@@ -110,7 +110,26 @@ elles forment un ensemble coherent livre avec le Bridge.
 - Arduino UNO Q connecte par USB au PC
 - Webcam USB branchee
 
-### Etape 1 : Configuration des ports
+### Etape 1 : Configuration de l'Arduino UNO Q en mode point d'acces
+
+Creer un point d'acces (AP) — remplacer le SSID et le mot de passe :
+
+```bash
+nmcli device wifi hotspot ssid TankETS password tank1234 ifname wlan0
+```
+
+Appliquer automatiquement a chaque demarrage :
+
+```bash
+nmcli connection modify Hotspot connection.autoconnect yes
+```
+
+En mode point d'acces la carte n'a **pas d'acces Internet** : `main.py` ignore alors
+l'installation pip (enveloppee dans un `try/except`) et demarre le serveur avec les
+dependances deja presentes. Faire au moins un premier demarrage **connecte a Internet**
+pour que les dependances Python s'installent.
+
+### Etape 2 : Configuration des ports
 
 Dans `app.yaml` a la racine du projet, s'assurer que le port du serveur web est expose :
 
@@ -120,7 +139,7 @@ ports: [7000]
 
 Sans cette ligne, le conteneur Docker tourne mais le port n'est pas accessible de l'exterieur.
 
-### Etape 2 : Deployer le code
+### Etape 3 : Deployer le code
 
 1. Ouvrir le projet dans Arduino App Lab
 2. Cliquer **Run** (bouton vert)
@@ -130,7 +149,7 @@ Sans cette ligne, le conteneur Docker tourne mais le port n'est pas accessible d
    - Installer automatiquement les dependances Python (premiere fois ~30s)
    - Demarrer le serveur web
 
-### Etape 3 : Acceder a l'interface
+### Etape 4 : Acceder a l'interface
 
 1. Trouver l'IP de la carte (affichee en bas d'App Lab, ex: `192.168.137.52`)
 2. Ouvrir dans un navigateur : `http://<IP>:7000`
