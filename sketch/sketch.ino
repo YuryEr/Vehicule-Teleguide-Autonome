@@ -4,12 +4,22 @@
 #include "moteurs.h"
 #include "imu.h"
 #include "deplacement.h"
+#include "leds.h"
+#include "ecran.h"
+#include "ultrason.h"
 #include "comm_bridge.h"
+#include "lidar.h"
 
 // ======================== LEDs ========================
 
-static void rpc_mode_led1(int mode) { /* TODO: hardware LED */ }
-static void rpc_mode_led2(int mode) { /* TODO: hardware LED */ }
+static void rpc_mode_led1(int mode) { Leds_DefinirMode(1, mode); }
+static void rpc_mode_led2(int mode) { Leds_DefinirMode(2, mode); }
+
+// ======================== Capteur ultrason ========================
+
+static int rpc_lire_ultrason_cm(void) { return Ultrason_DistanceCm(); }
+
+static int rpc_lire_lidar_cm(void) { return Lidar_DistanceCm(); }
 
 // ======================== Setup ========================
 
@@ -18,12 +28,11 @@ void setup() {
     Wire1.begin();
     delay(500);
 
-    Moteurs_Initialiser();
-    Imu_Initialiser();
-    Imu_Calibrer();
-
+    // Bridge en premier : le controle survit a un capteur defaillant
     CommBridge_Initialiser();
-
+    
+    Bridge.provide_safe("lire_lidar_cm",      rpc_lire_lidar_cm);
+    
     Bridge.provide_safe("joy_x",              Deplacement_JoystickX);
     Bridge.provide_safe("joy_y",              Deplacement_JoystickY);
     Bridge.provide_safe("roues",              Deplacement_Roues);
@@ -35,6 +44,20 @@ void setup() {
     Bridge.provide_safe("mouvement_actif",    Deplacement_EstActif);
     Bridge.provide_safe("mode_led1",          rpc_mode_led1);
     Bridge.provide_safe("mode_led2",          rpc_mode_led2);
+    Bridge.provide_safe("lire_ultrason_cm",   rpc_lire_ultrason_cm);
+
+    Moteurs_Initialiser();
+    Imu_Initialiser();
+    Imu_Calibrer();
+    Leds_Initialiser();
+    Ecran_Initialiser();
+    Ultrason_Initialiser();
+
+    Lidar_Initialiser();
+
+    // ===== TEST LIDAR TEMPORAIRE (a retirer apres validation) =====
+    Serial.print("[lidar] capteur present : ");
+    Serial.println(Lidar_EstPresent() ? "OUI" : "NON")
 
     Moteurs_Arreter();
     Serial.println("[MCU] TankETS pret — Bridge actif");
@@ -45,4 +68,16 @@ void setup() {
 void loop() {
     Bridge.update();
     Deplacement_MettreAJour();
+    Leds_MettreAJour();
+    Ultrason_MettreAJour();
+    Lidar_MettreAJour();
+
+    // ===== TEST LIDAR TEMPORAIRE (a retirer apres validation) =====
+    static unsigned long tPrintLidar = 0;
+    if (millis() - tPrintLidar > 500) {
+        tPrintLidar = millis();
+        Serial.print("[lidar] ");
+        Serial.print(Lidar_DistanceCm());
+        Serial.println(" cm");
+    }
 }

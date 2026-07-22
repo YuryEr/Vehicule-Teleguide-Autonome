@@ -4,6 +4,7 @@
 // Adresses I2C (bus Wire1 / Qwiic)
 #define ADRESSE_MOTEUR        0x34
 #define ADRESSE_GYRO          0x68
+#define ADRESSE_LIDAR         0x10
 
 // Registres carte moteur Hiwonder
 #define REG_TYPE_MOTEUR       20
@@ -35,5 +36,30 @@
 // Timeouts securite (ms)
 #define TIMEOUT_AVANCE_MS     12000
 #define TIMEOUT_ROTATION_MS   8000
+
+// Bandeaux LED adressables (WS2812B, protocole 800 kHz)
+#define PIN_BANDEAU_1          6
+#define PIN_BANDEAU_2          7
+#define NB_LEDS_PAR_BANDEAU    5
+#define LUMINOSITE_LEDS        60      // 0-255
+#define PERIODE_GYROPHARE_MS   250
+#define PERIODE_CLIGNOTANT_MS  400
+
+// Ecran TFT ILI9341 (SPI materiel)
+#define PIN_TFT_CS   10
+#define PIN_TFT_DC   9
+#define PIN_TFT_RST  8
+
+// Capteur ultrason HC-SR04 (echo via pont diviseur 5V->3.3V)
+#define PIN_ULTRASON_TRIG      2
+#define PIN_ULTRASON_ECHO      3
+#define ULTRASON_DISTANCE_MAX  200    // portee utile (cm)
+#define ULTRASON_PERIODE_MS    100    // rafraichissement (~10 Hz)
+
+// LiDAR TF-Luna (I2C sur Wire1 / Qwiic, broche CFG a la masse)
+#define REG_LIDAR_DIST        0x00    // 6 registres : dist L/H, force L/H, temp L/H
+#define LIDAR_FORCE_MIN       100     // en dessous : signal trop faible -> rejet
+#define LIDAR_DISTANCE_MAX    800     // portee fiable (cm)
+#define LIDAR_PERIODE_MS      100     // rafraichissement (~10 Hz)
 
 #endif
