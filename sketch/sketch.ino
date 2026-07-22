@@ -58,14 +58,4 @@ void loop() {
     Deplacement_MettreAJour();
     Leds_MettreAJour();
     Ultrason_MettreAJour();
-
-    // ===== TEST ULTRASON TEMPORAIRE (a retirer apres validation) =====
-    static unsigned long tPrint = 0;
-    if (millis() - tPrint > 500) {
-        tPrint = millis();
-        Serial.print("[ultrason] ");
-        Serial.print(Ultrason_DistanceCm());
-        Serial.println(" cm");
-    }
-    // ================================================================
 }
