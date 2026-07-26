@@ -80,13 +80,14 @@ void setup() {
 
 // ======================== Loop ========================
 
-// Les traces emises pendant setup() sont perdues : le moniteur d'App Lab
-// ne s'attache qu'une fois le conteneur Python demarre. On les rejoue ici.
+// Bilan de demarrage, emis depuis loop() : le moniteur serie s'attache
+// apres l'execution de setup().
 static void tracerDemarrage(void) {
     static bool tracee = false;
     if (tracee || millis() < 3000) return;
     tracee = true;
 
+    BusI2C_Tracer();
     Serial.print("[MCU] Bridge etabli apres ");
     Serial.print(dureeBridgeMs);
     Serial.println(" ms");

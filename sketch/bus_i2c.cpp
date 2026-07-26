@@ -13,16 +13,15 @@ static const uint8_t adressesConnues[] = {
 
 #define NB_ADRESSES_I2C  (sizeof(adressesConnues) / sizeof(adressesConnues[0]))
 
-static bool presence[NB_ADRESSES_I2C] = { false };
+static bool          presence[NB_ADRESSES_I2C]     = { false };
+static unsigned long dureeSondage[NB_ADRESSES_I2C] = { 0 };
 
 void BusI2C_Scanner(void) {
     for (uint8_t i = 0; i < NB_ADRESSES_I2C; i++) {
+        unsigned long t0 = millis();
         Wire1.beginTransmission(adressesConnues[i]);
         presence[i] = (Wire1.endTransmission() == 0);
-
-        Serial.print("[i2c] 0x");
-        Serial.print(adressesConnues[i], HEX);
-        Serial.println(presence[i] ? " : present" : " : absent");
+        dureeSondage[i] = millis() - t0;
     }
 }
 
@@ -31,4 +30,15 @@ bool BusI2C_EstPresent(uint8_t adresse) {
         if (adressesConnues[i] == adresse) return presence[i];
     }
     return false;   // adresse non declaree : traitee comme absente
+}
+
+void BusI2C_Tracer(void) {
+    for (uint8_t i = 0; i < NB_ADRESSES_I2C; i++) {
+        Serial.print("[i2c] 0x");
+        Serial.print(adressesConnues[i], HEX);
+        Serial.print(presence[i] ? " : present" : " : absent");
+        Serial.print(" (");
+        Serial.print(dureeSondage[i]);
+        Serial.println(" ms)");
+    }
 }

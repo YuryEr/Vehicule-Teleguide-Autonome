@@ -33,4 +33,19 @@ void BusI2C_Scanner(void);
  */
 bool BusI2C_EstPresent(uint8_t adresse);
 
+/*
+ * BusI2C_Tracer
+ *
+ * AFFICHE SUR LE PORT SERIE LE RESULTAT DU DERNIER SCAN : ADRESSE,
+ * PRESENCE ET DUREE DU SONDAGE. A APPELER DEPUIS loop() : LE MONITEUR
+ * NE S'ATTACHE QU'APRES L'EXECUTION DE setup().
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void BusI2C_Tracer(void);
+
 #endif
