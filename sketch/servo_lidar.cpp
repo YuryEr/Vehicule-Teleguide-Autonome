@@ -22,10 +22,12 @@ static int angleEnMicros(int angle) {
 }
 
 // PWM logiciel : avance vers la cible + rafraichit l'impulsion a 50 Hz.
-// Non bloquant sauf la duree de l'impulsion elle-meme (0.5-2.5 ms / 20 ms).
+// L'impulsion est mesuree avec micros() (attente active) : le scheduler
+// Zephyr ne garantit pas la precision de delayMicroseconds(), ce qui
+// provoque un tremblement du servo.
 void ServoLidar_MettreAJour(void) {
-    static unsigned long tRafraichi = 0;   // dernier pulse (50 Hz)
-    static unsigned long tDegre     = 0;   // derniere avance d'angle
+    static unsigned long tRafraichi = 0;
+    static unsigned long tDegre     = 0;
 
     unsigned long maintenant = millis();
 
@@ -39,8 +41,10 @@ void ServoLidar_MettreAJour(void) {
     // Impulsion toutes les 20 ms (50 Hz)
     if (maintenant - tRafraichi >= 20) {
         tRafraichi = maintenant;
+        unsigned long largeur = (unsigned long)angleEnMicros(angleCourant);
+        unsigned long t0 = micros();
         digitalWrite(PIN_SERVO, HIGH);
-        delayMicroseconds(angleEnMicros(angleCourant));
+        while (micros() - t0 < largeur) { }   // attente active, timing precis
         digitalWrite(PIN_SERVO, LOW);
     }
 }

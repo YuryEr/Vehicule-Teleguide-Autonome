@@ -29,6 +29,7 @@ static void rpc_servo_angle(int angle) { ServoLidar_DefinirAngle(angle); }
 // ======================== Setup ========================
 
 void setup() {
+
     Serial.begin(9600);
     Wire1.begin();
     delay(500);
@@ -72,13 +73,5 @@ void loop() {
     Ultrason_MettreAJour();
     Lidar_MettreAJour();
     ServoLidar_MettreAJour();
-
-    // ===== TEST SERVO TEMPORAIRE (a retirer apres validation) =====
-    static unsigned long tServo = 0;
-    static bool versMax = true;
-    if (millis() - tServo > 2000) {        // toutes les 2s : change de cible
-        tServo = millis();
-        ServoLidar_DefinirAngle(versMax ? 180 : 0);
-        versMax = !versMax;
-    }
+    
 }
