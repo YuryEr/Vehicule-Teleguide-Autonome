@@ -29,25 +29,11 @@ static void rpc_servo_angle(int angle) { ServoLidar_DefinirAngle(angle); }
 
 // ======================== Setup ========================
 
-static unsigned long dureeBridgeMs = 0;
-static unsigned long dureeSetupMs  = 0;
-
-// Chronometrage des initialisations, affiche par tracerDemarrage().
-#define NB_ETAPES_INIT  8
-
-static const char *nomEtape[NB_ETAPES_INIT] = {
-    "Moteurs", "Imu", "ImuCalibrer", "Leds",
-    "Ecran", "Ultrason", "Lidar", "ServoLidar"
-};
-static unsigned long dureeEtape[NB_ETAPES_INIT] = { 0 };
-
 void setup() {
 
     Serial.begin(9600);
     Wire1.begin();
     delay(500);
-
-    unsigned long tDebut = millis();
 
     // Bridge en premier : le controle survit a un capteur defaillant
     CommBridge_Initialiser();
@@ -66,24 +52,20 @@ void setup() {
     Bridge.provide_safe("lire_lidar_cm",      rpc_lire_lidar_cm);
     Bridge.provide_safe("servo_angle",        rpc_servo_angle);
 
-    dureeBridgeMs = millis() - tDebut;
-
     // Sonde le bus une fois : les modules dont le peripherique est absent
     // resteront inertes au lieu de bloquer la boucle sur des timeouts I2C.
     BusI2C_Scanner();
 
-    unsigned long tEtape = millis();
-    Moteurs_Initialiser();     dureeEtape[0] = millis() - tEtape; tEtape = millis();
-    Imu_Initialiser();         dureeEtape[1] = millis() - tEtape; tEtape = millis();
-    Imu_Calibrer();            dureeEtape[2] = millis() - tEtape; tEtape = millis();
-    Leds_Initialiser();        dureeEtape[3] = millis() - tEtape; tEtape = millis();
-    Ecran_Initialiser();       dureeEtape[4] = millis() - tEtape; tEtape = millis();
-    Ultrason_Initialiser();    dureeEtape[5] = millis() - tEtape; tEtape = millis();
-    Lidar_Initialiser();       dureeEtape[6] = millis() - tEtape; tEtape = millis();
-    ServoLidar_Initialiser();  dureeEtape[7] = millis() - tEtape;
+    Moteurs_Initialiser();
+    Imu_Initialiser();
+    Imu_Calibrer();
+    Leds_Initialiser();
+    Ecran_Initialiser();
+    Ultrason_Initialiser();
+    Lidar_Initialiser();
+    ServoLidar_Initialiser();
 
     Moteurs_Arreter();
-    dureeSetupMs = millis() - tDebut;
 }
 
 // ======================== Loop ========================
@@ -96,19 +78,6 @@ static void tracerDemarrage(void) {
     tracee = true;
 
     BusI2C_Tracer();
-    for (uint8_t i = 0; i < NB_ETAPES_INIT; i++) {
-        Serial.print("[init] ");
-        Serial.print(nomEtape[i]);
-        Serial.print(" : ");
-        Serial.print(dureeEtape[i]);
-        Serial.println(" ms");
-    }
-    Serial.print("[MCU] Bridge etabli apres ");
-    Serial.print(dureeBridgeMs);
-    Serial.println(" ms");
-    Serial.print("[MCU] Setup complet apres ");
-    Serial.print(dureeSetupMs);
-    Serial.println(" ms");
     Serial.println("[MCU] TankETS pret — Bridge actif");
 }
 
@@ -120,13 +89,4 @@ void loop() {
     Lidar_MettreAJour();
     ServoLidar_MettreAJour();
     tracerDemarrage();
-
-    // ===== TEST SERVO TEMPORAIRE (a retirer apres validation) =====
-    static unsigned long tServo = 0;
-    static bool versMax = true;
-    if (millis() - tServo > 2000) {
-        tServo = millis();
-        ServoLidar_DefinirAngle(versMax ? 180 : 0);
-        versMax = !versMax;
-    }
 }
