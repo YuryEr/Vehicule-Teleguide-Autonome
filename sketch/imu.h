@@ -45,4 +45,7 @@ void Imu_Calibrer(void);
  */
 float Imu_LireGyroZ(void);
 
+// RETOURNE VRAI SI LE MPU-6050 A REPONDU SUR LE BUS I2C A L'INITIALISATION.
+bool Imu_EstPresent(void);
+
 #endif

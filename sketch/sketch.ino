@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include "Arduino_RouterBridge.h"
 #include "config.h"
+#include "bus_i2c.h"
 #include "moteurs.h"
 #include "imu.h"
 #include "deplacement.h"
@@ -33,6 +34,10 @@ void setup() {
     Serial.begin(9600);
     Wire1.begin();
     delay(500);
+
+    // Sonde le bus une fois : les modules dont le peripherique est absent
+    // resteront inertes au lieu de bloquer la boucle sur des timeouts I2C.
+    BusI2C_Scanner();
 
     // Bridge en premier : le controle survit a un capteur defaillant
     CommBridge_Initialiser();
@@ -73,5 +78,16 @@ void loop() {
     Ultrason_MettreAJour();
     Lidar_MettreAJour();
     ServoLidar_MettreAJour();
+
+    // ===== TEST SERVO TEMPORAIRE (a retirer apres validation) =====
+    static unsigned long tServo = 0;
+    static bool versMax = true;
+    if (millis() - tServo > 2000) {
+        tServo = millis();
+        ServoLidar_DefinirAngle(versMax ? 180 : 0);
+        Serial.print("[SERVO] cible = ");
+        Serial.println(versMax ? 180 : 0);
+        versMax = !versMax;
+    }
     
 }

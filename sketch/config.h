@@ -55,6 +55,7 @@
 #define PIN_ULTRASON_ECHO      3
 #define ULTRASON_DISTANCE_MAX  200    // portee utile (cm)
 #define ULTRASON_PERIODE_MS    100    // rafraichissement (~10 Hz)
+#define ULTRASON_TIMEOUT_PRESENCE_US  60000UL  // sondage init : > 38 ms (echo a vide)
 
 // LiDAR TF-Luna (I2C sur Wire1 / Qwiic, broche CFG a la masse)
 #define REG_LIDAR_DIST        0x00    // 6 registres : dist L/H, force L/H, temp L/H
@@ -68,7 +69,7 @@
 #define SERVO_ANGLE_MAX       180
 #define SERVO_ANGLE_CENTRE    90      // 90 deg = droit devant
 #define SERVO_MS_PAR_DEGRE    5       // 5 ms/deg ~= 200 deg/s (max SG90 ~300)
-#define SERVO_PULSE_MIN_US    500     // largeur d'impulsion a 0 deg
-#define SERVO_PULSE_MAX_US    2500    // largeur d'impulsion a 180 deg
+#define SERVO_PULSE_MIN_US    600     // largeur d'impulsion a 0 deg
+#define SERVO_PULSE_MAX_US    2400    // largeur d'impulsion a 180 deg
 
 #endif
