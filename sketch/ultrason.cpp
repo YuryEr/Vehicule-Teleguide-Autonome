@@ -20,7 +20,7 @@ static void declencher(void) {
 // (~38 ms a vide). Aucune impulsion sur un timeout large = capteur absent.
 static bool detecterPresence(void) {
     declencher();
-    return pulseIn(PIN_ULTRASON_ECHO, HIGH, ULTRASON_TIMEOUT_PRESENCE_US) > 0;
+    return pulseIn(PIN_ULTRASON_ECHO, HIGH, ULTRASON_TIMEOUT_PRESENCE_MS) > 0;
 }
 
 void Ultrason_Initialiser(void) {
@@ -36,8 +36,7 @@ void Ultrason_Initialiser(void) {
 static int mesurer(void) {
     declencher();
 
-    unsigned long timeout = (unsigned long)ULTRASON_DISTANCE_MAX * ULTRASON_US_PAR_CM;
-    unsigned long duree = pulseIn(PIN_ULTRASON_ECHO, HIGH, timeout);
+    unsigned long duree = pulseIn(PIN_ULTRASON_ECHO, HIGH, ULTRASON_TIMEOUT_MESURE_MS);
 
     if (duree == 0) return ULTRASON_DISTANCE_MAX;   // aucun echo = voie degagee
     int cm = (int)(duree / ULTRASON_US_PAR_CM);
