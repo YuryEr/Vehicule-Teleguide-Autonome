@@ -73,4 +73,7 @@ int32_t Moteurs_LireEncodeurGauche(void);
  */
 float Moteurs_PulsesEnMetres(long pulses);
 
+// RETOURNE VRAI SI LA CARTE MOTEUR HIWONDER A REPONDU SUR LE BUS I2C.
+bool Moteurs_EstPresent(void);
+
 #endif

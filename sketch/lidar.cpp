@@ -1,4 +1,5 @@
 #include "lidar.h"
+#include "bus_i2c.h"
 #include "config.h"
 #include <Wire.h>
 
@@ -36,12 +37,11 @@ void Lidar_Initialiser(void) {
     distanceCache = -1;
 }
 
-bool Lidar_EstPresent(void) {
-    Wire1.beginTransmission(ADRESSE_LIDAR);
-    return (Wire1.endTransmission() == 0);
-}
+bool Lidar_EstPresent(void) { return BusI2C_EstPresent(ADRESSE_LIDAR); }
 
 void Lidar_MettreAJour(void) {
+    if (!Lidar_EstPresent()) return;   // capteur absent : aucune transaction I2C
+
     static unsigned long tPrecedent = 0;
     unsigned long maintenant = millis();
     if (maintenant - tPrecedent < LIDAR_PERIODE_MS) return;

@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include "Arduino_RouterBridge.h"
 #include "config.h"
+#include "bus_i2c.h"
 #include "moteurs.h"
 #include "imu.h"
 #include "deplacement.h"
@@ -9,6 +10,8 @@
 #include "ultrason.h"
 #include "lidar.h"
 #include "comm_bridge.h"
+#include "servo_lidar.h"
+
 
 // ======================== LEDs ========================
 
@@ -20,9 +23,14 @@ static void rpc_mode_led2(int mode) { Leds_DefinirMode(2, mode); }
 static int rpc_lire_ultrason_cm(void) { return Ultrason_DistanceCm(); }
 static int rpc_lire_lidar_cm(void)    { return Lidar_DistanceCm(); }
 
+// ======================== ServoMoteur ========================
+
+static void rpc_servo_angle(int angle) { ServoLidar_DefinirAngle(angle); }
+
 // ======================== Setup ========================
 
 void setup() {
+
     Serial.begin(9600);
     Wire1.begin();
     delay(500);
@@ -42,6 +50,11 @@ void setup() {
     Bridge.provide_safe("mode_led2",          rpc_mode_led2);
     Bridge.provide_safe("lire_ultrason_cm",   rpc_lire_ultrason_cm);
     Bridge.provide_safe("lire_lidar_cm",      rpc_lire_lidar_cm);
+    Bridge.provide_safe("servo_angle",        rpc_servo_angle);
+
+    // Sonde le bus une fois : les modules dont le peripherique est absent
+    // resteront inertes au lieu de bloquer la boucle sur des timeouts I2C.
+    BusI2C_Scanner();
 
     Moteurs_Initialiser();
     Imu_Initialiser();
@@ -50,12 +63,23 @@ void setup() {
     Ecran_Initialiser();
     Ultrason_Initialiser();
     Lidar_Initialiser();
+    ServoLidar_Initialiser();
 
     Moteurs_Arreter();
-    Serial.println("[MCU] TankETS pret — Bridge actif");
 }
 
 // ======================== Loop ========================
+
+// Bilan de demarrage, emis depuis loop() : le moniteur serie s'attache
+// apres l'execution de setup().
+static void tracerDemarrage(void) {
+    static bool tracee = false;
+    if (tracee || millis() < 3000) return;
+    tracee = true;
+
+    BusI2C_Tracer();
+    Serial.println("[MCU] TankETS pret — Bridge actif");
+}
 
 void loop() {
     Bridge.update();
@@ -63,4 +87,6 @@ void loop() {
     Leds_MettreAJour();
     Ultrason_MettreAJour();
     Lidar_MettreAJour();
+    ServoLidar_MettreAJour();
+    tracerDemarrage();
 }

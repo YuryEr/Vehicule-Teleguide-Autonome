@@ -1,4 +1,5 @@
 #include "moteurs.h"
+#include "bus_i2c.h"
 #include "config.h"
 #include <Wire.h>
 
@@ -22,6 +23,8 @@ static bool I2C_Lire(uint8_t addr, uint8_t reg,
 }
 
 void Moteurs_Initialiser(void) {
+    if (!Moteurs_EstPresent()) return;
+
     uint8_t type = TYPE_JGB37_520;
     uint8_t polarite = 0;
     I2C_Ecrire(ADRESSE_MOTEUR, REG_TYPE_MOTEUR, &type, 1);
@@ -31,17 +34,17 @@ void Moteurs_Initialiser(void) {
 }
 
 void Moteurs_DefinirVitesse(int gauche, int droite) {
+    if (!Moteurs_EstPresent()) return;
+
     gauche = constrain(gauche, -100, 100);
     droite = constrain(droite, -100, 100);
     int8_t cmd[4] = { (int8_t)gauche, (int8_t)droite, 0, 0 };
     I2C_Ecrire(ADRESSE_MOTEUR, REG_VITESSE_FIXE, (uint8_t*)cmd, 4);
 }
 
-void Moteurs_Arreter(void) {
-    Moteurs_DefinirVitesse(0, 0);
-}
-
 int32_t Moteurs_LireEncodeurGauche(void) {
+    if (!Moteurs_EstPresent()) return 0;
+
     uint8_t buf[16];
     int32_t enc[4];
     if (!I2C_Lire(ADRESSE_MOTEUR, REG_ENCODEUR_TOTAL, buf, 16)) return 0;
@@ -49,7 +52,13 @@ int32_t Moteurs_LireEncodeurGauche(void) {
     return enc[0];
 }
 
+void Moteurs_Arreter(void) {
+    Moteurs_DefinirVitesse(0, 0);
+}
+
 float Moteurs_PulsesEnMetres(long pulses) {
     float circonference = (DIAMETRE_ROUE_MM / 1000.0f) * PI;
     return ((float)pulses / IMPULSIONS_PAR_ROUE) * circonference;
 }
+
+bool Moteurs_EstPresent(void) { return BusI2C_EstPresent(ADRESSE_MOTEUR); }
