@@ -29,11 +29,18 @@ static void rpc_servo_angle(int angle) { ServoLidar_DefinirAngle(angle); }
 
 // ======================== Setup ========================
 
+// ======================== Setup ========================
+
+static unsigned long dureeBridgeMs = 0;
+static unsigned long dureeSetupMs  = 0;
+
 void setup() {
 
     Serial.begin(9600);
     Wire1.begin();
     delay(500);
+
+    unsigned long tDebut = millis();
 
     // Bridge en premier : le controle survit a un capteur defaillant
     CommBridge_Initialiser();
@@ -52,16 +59,12 @@ void setup() {
     Bridge.provide_safe("lire_lidar_cm",      rpc_lire_lidar_cm);
     Bridge.provide_safe("servo_angle",        rpc_servo_angle);
 
-    unsigned long tDebut = millis();
+    dureeBridgeMs = millis() - tDebut;
 
-    CommBridge_Initialiser();
-    // ... provide_safe ...
-
-    Serial.print("[MCU] Bridge etabli apres ");
-    Serial.print(millis() - tDebut);
-    Serial.println(" ms");
-
+    // Sonde le bus une fois : les modules dont le peripherique est absent
+    // resteront inertes au lieu de bloquer la boucle sur des timeouts I2C.
     BusI2C_Scanner();
+
     Moteurs_Initialiser();
     Imu_Initialiser();
     Imu_Calibrer();
@@ -71,12 +74,27 @@ void setup() {
     Lidar_Initialiser();
     ServoLidar_Initialiser();
 
-    Serial.print("[MCU] Setup complet apres ");
-    Serial.print(millis() - tDebut);
-    Serial.println(" ms");
+    Moteurs_Arreter();
+    dureeSetupMs = millis() - tDebut;
 }
 
 // ======================== Loop ========================
+
+// Les traces emises pendant setup() sont perdues : le moniteur d'App Lab
+// ne s'attache qu'une fois le conteneur Python demarre. On les rejoue ici.
+static void tracerDemarrage(void) {
+    static bool tracee = false;
+    if (tracee || millis() < 3000) return;
+    tracee = true;
+
+    Serial.print("[MCU] Bridge etabli apres ");
+    Serial.print(dureeBridgeMs);
+    Serial.println(" ms");
+    Serial.print("[MCU] Setup complet apres ");
+    Serial.print(dureeSetupMs);
+    Serial.println(" ms");
+    Serial.println("[MCU] TankETS pret — Bridge actif");
+}
 
 void loop() {
     Bridge.update();
@@ -85,6 +103,7 @@ void loop() {
     Ultrason_MettreAJour();
     Lidar_MettreAJour();
     ServoLidar_MettreAJour();
+    tracerDemarrage();
 
     // ===== TEST SERVO TEMPORAIRE (a retirer apres validation) =====
     static unsigned long tServo = 0;
@@ -92,9 +111,6 @@ void loop() {
     if (millis() - tServo > 2000) {
         tServo = millis();
         ServoLidar_DefinirAngle(versMax ? 180 : 0);
-        Serial.print("[SERVO] cible = ");
-        Serial.println(versMax ? 180 : 0);
         versMax = !versMax;
     }
-    
 }
