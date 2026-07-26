@@ -35,10 +35,6 @@ void setup() {
     Wire1.begin();
     delay(500);
 
-    // Sonde le bus une fois : les modules dont le peripherique est absent
-    // resteront inertes au lieu de bloquer la boucle sur des timeouts I2C.
-    BusI2C_Scanner();
-
     // Bridge en premier : le controle survit a un capteur defaillant
     CommBridge_Initialiser();
     Bridge.provide_safe("joy_x",              Deplacement_JoystickX);
@@ -56,6 +52,16 @@ void setup() {
     Bridge.provide_safe("lire_lidar_cm",      rpc_lire_lidar_cm);
     Bridge.provide_safe("servo_angle",        rpc_servo_angle);
 
+    unsigned long tDebut = millis();
+
+    CommBridge_Initialiser();
+    // ... provide_safe ...
+
+    Serial.print("[MCU] Bridge etabli apres ");
+    Serial.print(millis() - tDebut);
+    Serial.println(" ms");
+
+    BusI2C_Scanner();
     Moteurs_Initialiser();
     Imu_Initialiser();
     Imu_Calibrer();
@@ -65,8 +71,9 @@ void setup() {
     Lidar_Initialiser();
     ServoLidar_Initialiser();
 
-    Moteurs_Arreter();
-    Serial.println("[MCU] TankETS pret — Bridge actif");
+    Serial.print("[MCU] Setup complet apres ");
+    Serial.print(millis() - tDebut);
+    Serial.println(" ms");
 }
 
 // ======================== Loop ========================
