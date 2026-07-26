@@ -29,10 +29,17 @@ static void rpc_servo_angle(int angle) { ServoLidar_DefinirAngle(angle); }
 
 // ======================== Setup ========================
 
-// ======================== Setup ========================
-
 static unsigned long dureeBridgeMs = 0;
 static unsigned long dureeSetupMs  = 0;
+
+// Chronometrage des initialisations, affiche par tracerDemarrage().
+#define NB_ETAPES_INIT  8
+
+static const char *nomEtape[NB_ETAPES_INIT] = {
+    "Moteurs", "Imu", "ImuCalibrer", "Leds",
+    "Ecran", "Ultrason", "Lidar", "ServoLidar"
+};
+static unsigned long dureeEtape[NB_ETAPES_INIT] = { 0 };
 
 void setup() {
 
@@ -65,14 +72,15 @@ void setup() {
     // resteront inertes au lieu de bloquer la boucle sur des timeouts I2C.
     BusI2C_Scanner();
 
-    Moteurs_Initialiser();
-    Imu_Initialiser();
-    Imu_Calibrer();
-    Leds_Initialiser();
-    Ecran_Initialiser();
-    Ultrason_Initialiser();
-    Lidar_Initialiser();
-    ServoLidar_Initialiser();
+    unsigned long tEtape = millis();
+    Moteurs_Initialiser();     dureeEtape[0] = millis() - tEtape; tEtape = millis();
+    Imu_Initialiser();         dureeEtape[1] = millis() - tEtape; tEtape = millis();
+    Imu_Calibrer();            dureeEtape[2] = millis() - tEtape; tEtape = millis();
+    Leds_Initialiser();        dureeEtape[3] = millis() - tEtape; tEtape = millis();
+    Ecran_Initialiser();       dureeEtape[4] = millis() - tEtape; tEtape = millis();
+    Ultrason_Initialiser();    dureeEtape[5] = millis() - tEtape; tEtape = millis();
+    Lidar_Initialiser();       dureeEtape[6] = millis() - tEtape; tEtape = millis();
+    ServoLidar_Initialiser();  dureeEtape[7] = millis() - tEtape;
 
     Moteurs_Arreter();
     dureeSetupMs = millis() - tDebut;
@@ -88,6 +96,13 @@ static void tracerDemarrage(void) {
     tracee = true;
 
     BusI2C_Tracer();
+    for (uint8_t i = 0; i < NB_ETAPES_INIT; i++) {
+        Serial.print("[init] ");
+        Serial.print(nomEtape[i]);
+        Serial.print(" : ");
+        Serial.print(dureeEtape[i]);
+        Serial.println(" ms");
+    }
     Serial.print("[MCU] Bridge etabli apres ");
     Serial.print(dureeBridgeMs);
     Serial.println(" ms");
