@@ -11,6 +11,7 @@
 #include "lidar.h"
 #include "comm_bridge.h"
 #include "servo_lidar.h"
+#include "test_capteurs.h"
 
 
 // ======================== LEDs ========================
@@ -89,4 +90,5 @@ void loop() {
     Lidar_MettreAJour();
     ServoLidar_MettreAJour();
     tracerDemarrage();
+    TestCapteurs_MettreAJour();
 }

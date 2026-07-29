@@ -56,3 +56,5 @@ void Ultrason_MettreAJour(void) {
 int Ultrason_DistanceCm(void) {
     return distanceCache;
 }
+
+bool Ultrason_EstPresent(void) { return capteurPresent; }
