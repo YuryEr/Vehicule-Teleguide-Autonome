@@ -55,9 +55,10 @@
 #define PIN_ULTRASON_ECHO      3
 #define ULTRASON_DISTANCE_MAX  200    // portee utile (cm)
 #define ULTRASON_PERIODE_MS    100    // rafraichissement (~10 Hz)
-// Le core Zephyr interprete le timeout de pulseIn en millisecondes.
-#define ULTRASON_TIMEOUT_MESURE_MS    12    // 200 cm aller-retour : ~11.6 ms
-#define ULTRASON_TIMEOUT_PRESENCE_MS  60    // > 38 ms : duree de l'echo sans obstacle
+// Bornes de mesure explicites : pulseIn n'honore pas son timeout sur le
+// core Zephyr et fige la boucle si ECHO reste a l'etat haut.
+#define ULTRASON_TIMEOUT_US           12000UL   // 200 cm aller-retour : ~11.6 ms
+#define ULTRASON_TIMEOUT_PRESENCE_US  60000UL   // > 38 ms : echo emis sans obstacle
 
 // LiDAR TF-Luna (I2C sur Wire1 / Qwiic, broche CFG a la masse)
 #define REG_LIDAR_DIST        0x00    // 6 registres : dist L/H, force L/H, temp L/H

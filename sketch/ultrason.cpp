@@ -16,11 +16,21 @@ static void declencher(void) {
     digitalWrite(PIN_ULTRASON_TRIG, LOW);
 }
 
+// Attend que ECHO atteigne l'etat demande, dans la limite impartie.
+// Retourne l'instant du changement, ou 0 si le delai expire.
+static unsigned long attendreEtat(int etat, unsigned long limiteUs) {
+    unsigned long t0 = micros();
+    while (digitalRead(PIN_ULTRASON_ECHO) != etat) {
+        if (micros() - t0 >= limiteUs) return 0;
+    }
+    return micros();
+}
+
 // Un HC-SR04 alimente repond toujours sur ECHO, meme sans obstacle
-// (~38 ms a vide). Aucune impulsion sur un timeout large = capteur absent.
+// (~38 ms a vide). Aucun front montant = capteur absent.
 static bool detecterPresence(void) {
     declencher();
-    return pulseIn(PIN_ULTRASON_ECHO, HIGH, ULTRASON_TIMEOUT_PRESENCE_MS) > 0;
+    return attendreEtat(HIGH, ULTRASON_TIMEOUT_PRESENCE_US) != 0;
 }
 
 void Ultrason_Initialiser(void) {
@@ -36,15 +46,18 @@ void Ultrason_Initialiser(void) {
 static int mesurer(void) {
     declencher();
 
-    unsigned long duree = pulseIn(PIN_ULTRASON_ECHO, HIGH, ULTRASON_TIMEOUT_MESURE_MS);
+    unsigned long debut = attendreEtat(HIGH, ULTRASON_TIMEOUT_US);
+    if (debut == 0) return ULTRASON_DISTANCE_MAX;   // aucun echo = voie degagee
 
-    if (duree == 0) return ULTRASON_DISTANCE_MAX;   // aucun echo = voie degagee
-    int cm = (int)(duree / ULTRASON_US_PAR_CM);
+    unsigned long fin = attendreEtat(LOW, ULTRASON_TIMEOUT_US);
+    if (fin == 0) return ULTRASON_DISTANCE_MAX;     // echo bloque : mesure ignoree
+
+    int cm = (int)((fin - debut) / ULTRASON_US_PAR_CM);
     return (cm > ULTRASON_DISTANCE_MAX) ? ULTRASON_DISTANCE_MAX : cm;
 }
 
 void Ultrason_MettreAJour(void) {
-    if (!capteurPresent) return;      // capteur absent : pas d'attente sur pulseIn
+    if (!capteurPresent) return;      // capteur absent : aucune attente sur ECHO
 
     static unsigned long tPrecedent = 0;
     unsigned long maintenant = millis();
