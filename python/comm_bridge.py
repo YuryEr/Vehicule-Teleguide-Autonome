@@ -105,13 +105,20 @@ def mouvement_actif():
 
 # ======================== LEDs ========================
 
-def definir_mode_led(bandeau, mode):
-    """Change le mode d'un bandeau LED.
+def definir_mode_bandeaux(mode):
+    """Change le mode des deux bandeaux (avant + arriere).
 
-    bandeau — numero du bandeau (1 ou 2)
-    mode    — 0=eteint, 1=gyrophare, 2=clignotant, 3=phares
+    mode — 0=eteint, 1=feux de position, 2=gyrophare
     """
-    _appeler(f"mode_led{int(bandeau)}", int(mode))
+    _appeler("mode_bandeaux", int(mode))
+
+
+def definir_phares(actif):
+    """Allume ou eteint les phares avant (blanc pleine puissance).
+
+    actif — True pour allumer, False pour eteindre
+    """
+    _appeler("mode_phares", 1 if actif else 0)
 
 
 # ======================== Vision ========================

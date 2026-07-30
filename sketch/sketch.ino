@@ -5,23 +5,25 @@
 #include "imu.h"
 #include "deplacement.h"
 #include "comm_bridge.h"
+#include "leds.h" 
 
 // ======================== LEDs ========================
 
-static void rpc_mode_led1(int mode) { /* TODO: hardware LED */ }
-static void rpc_mode_led2(int mode) { /* TODO: hardware LED */ }
+static void rpc_mode_bandeaux(int mode) { Leds_DefinirModeBandeaux(mode); }
+static void rpc_mode_phares(int actif)  { Leds_DefinirPhares(actif); }
 
 // ======================== Setup ========================
 
 void setup() {
     Serial.begin(9600);
     Wire1.begin();
+  
     delay(500);
 
     Moteurs_Initialiser();
-    Imu_Initialiser();
-    Imu_Calibrer();
-
+    Leds_Initialiser();
+    //Imu_Initialiser();
+    //Imu_Calibrer();
     CommBridge_Initialiser();
 
     Bridge.provide_safe("joy_x",              Deplacement_JoystickX);
@@ -32,8 +34,8 @@ void setup() {
     Bridge.provide_safe("tourner_droite_deg", Deplacement_TournerDroite);
     Bridge.provide_safe("arreter_mouvement",  Deplacement_Arreter);
     Bridge.provide_safe("mouvement_actif",    Deplacement_EstActif);
-    Bridge.provide_safe("mode_led1",          rpc_mode_led1);
-    Bridge.provide_safe("mode_led2",          rpc_mode_led2);
+    Bridge.provide_safe("mode_bandeaux", rpc_mode_bandeaux);
+    Bridge.provide_safe("mode_phares",   rpc_mode_phares);
 
     Moteurs_Arreter();
     Serial.println("[MCU] TankETS pret — Bridge actif");
@@ -41,7 +43,10 @@ void setup() {
 
 // ======================== Loop ========================
 
-void loop() {
+void loop()
+{
     Bridge.update();
+    Leds_MettreAJour();
     Deplacement_MettreAJour();
+  
 }

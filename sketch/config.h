@@ -36,4 +36,14 @@
 #define TIMEOUT_AVANCE_MS     12000
 #define TIMEOUT_ROTATION_MS   8000
 
+// Bandeaux LED WS2812B
+#define PIN_BANDEAU_AVANT     3
+#define PIN_BANDEAU_ARRIERE   6
+#define PIN_PHARES            9
+#define NB_LEDS_PAR_BANDEAU   8
+#define NB_LEDS_PHARES        2
+#define LUMINOSITE_BANDEAUX   64
+#define LUMINOSITE_PHARES     255
+#define PERIODE_GYROPHARE_MS  150
+
 #endif

@@ -25,10 +25,10 @@ socket.on('disconnect', () => {
     }
 });
 
-socket.on('mode_actuel', (data) => mettreAJourAffichageMode(data.mode));
-socket.on('etat_camera', (data) => mettreAJourAffichageCamera(data.active));
-socket.on('etat_led1',   (data) => mettreAJourAffichageLed(1, data.active, data.mode));
-socket.on('etat_led2',   (data) => mettreAJourAffichageLed(2, data.active, data.mode));
+socket.on('mode_actuel',   (data) => mettreAJourAffichageMode(data.mode));
+socket.on('etat_camera',   (data) => mettreAJourAffichageCamera(data.active));
+socket.on('etat_bandeaux', (data) => mettreAJourAffichageBandeaux(data.mode));
+socket.on('etat_phares',   (data) => mettreAJourAffichagePhares(data.active));
 
 
 // ================================================================
@@ -118,37 +118,34 @@ if (typeof Blockly !== 'undefined') {
         }
     };
 
-    Blockly.Blocks['led_allumer'] = {
+    Blockly.Blocks['bandeaux_mode'] = {
         init: function() {
             this.appendDummyInput()
-                .appendField("allumer bandeau")
+                .appendField("bandeaux :")
                 .appendField(new Blockly.FieldDropdown([
-                    ["1", "1"], ["2", "2"]
-                ]), "BANDEAU")
-                .appendField("en mode")
-                .appendField(new Blockly.FieldDropdown([
-                    ["gyrophare",  "1"],
-                    ["clignotant", "2"],
-                    ["phares",     "3"]
+                    ["eteints",             "0"],
+                    ["feux de position",    "1"],
+                    ["gyrophare",           "2"]
                 ]), "MODE");
             this.setPreviousStatement(true);
             this.setNextStatement(true);
             this.setColour(280);
-            this.setTooltip("Allume le bandeau LED dans le mode choisi");
+            this.setTooltip("Change le mode des bandeaux avant et arriere");
         }
     };
 
-    Blockly.Blocks['led_eteindre'] = {
+    Blockly.Blocks['phares'] = {
         init: function() {
             this.appendDummyInput()
-                .appendField("eteindre bandeau")
                 .appendField(new Blockly.FieldDropdown([
-                    ["1", "1"], ["2", "2"]
-                ]), "BANDEAU");
+                    ["allumer",  "1"],
+                    ["eteindre", "0"]
+                ]), "ACTIF")
+                .appendField("les phares avant");
             this.setPreviousStatement(true);
             this.setNextStatement(true);
-            this.setColour(280);
-            this.setTooltip("Eteint le bandeau LED");
+            this.setColour(60);
+            this.setTooltip("Allume ou eteint les phares avant");
         }
     };
 
@@ -209,14 +206,13 @@ function extraireSequence() {
                 sequence.push({ cmd: 'tourner_droite',
                                 valeur: parseFloat(bloc.getFieldValue('VALEUR')) });
                 break;
-            case 'led_allumer':
-                sequence.push({ cmd: 'led',
-                                bandeau: parseInt(bloc.getFieldValue('BANDEAU')),
-                                mode:    parseInt(bloc.getFieldValue('MODE')) });
+            case 'bandeaux_mode':
+                sequence.push({ cmd: 'bandeaux',
+                                mode: parseInt(bloc.getFieldValue('MODE')) });
                 break;
-            case 'led_eteindre':
-                sequence.push({ cmd: 'led_off',
-                                bandeau: parseInt(bloc.getFieldValue('BANDEAU')) });
+            case 'phares':
+                sequence.push({ cmd: 'phares',
+                                actif: bloc.getFieldValue('ACTIF') === '1' });
                 break;
             case 'attendre':
                 sequence.push({ cmd: 'attendre',
@@ -355,51 +351,61 @@ function mettreAJourAffichageCamera(active) {
 
 
 // ================================================================
-// BANDEAUX LED
+// BANDEAUX LED (avant + arriere, commandes ensemble)
 // ================================================================
-const MODES_LED   = ["ETEINT", "GYROPHARE", "CLIGNOTANT", "PHARES"];
-const CLASSES_LED = [
-    "mode-led-eteint", "mode-led-gyrophare",
-    "mode-led-clignotant", "mode-led-phares"
+const MODES_BANDEAUX   = ["ETEINTS", "POSITION", "GYROPHARE"];
+const CLASSES_BANDEAUX = [
+    "mode-led-eteint",
+    "mode-led-phares",
+    "mode-led-gyrophare"
 ];
-const ledOn   = { 1: false, 2: false };
-const ledMode = { 1: 1, 2: 1 };
+let modeBandeaux = 0;
 
-function toggleOnoffLed(num) {
-    ledOn[num] = !ledOn[num];
-    socket.emit(`onoff_led${num}`, { active: ledOn[num] });
-    mettreAJourAffichageLed(num, ledOn[num], ledMode[num]);
+function changerModeBandeaux() {
+    modeBandeaux = (modeBandeaux + 1) % MODES_BANDEAUX.length;
+    socket.emit('mode_bandeaux', { mode: modeBandeaux });
+    mettreAJourAffichageBandeaux(modeBandeaux);
 }
 
-function changerModeLed(num) {
-    ledMode[num] = (ledMode[num] % 3) + 1;
-    socket.emit(`mode_led${num}`, { mode: ledMode[num] });
-    mettreAJourAffichageLed(num, ledOn[num], ledMode[num]);
+function mettreAJourAffichageBandeaux(mode) {
+    modeBandeaux = mode;
+    const indicateur = document.getElementById('indicateur-bandeaux');
+    const badge      = document.getElementById('badge-bandeaux');
+
+    indicateur.className = (mode === 0) ? 'indicateur-off' : 'indicateur-on';
+    badge.textContent    = MODES_BANDEAUX[mode];
+    badge.className      = `mode-actuel-badge ${CLASSES_BANDEAUX[mode]}`;
 }
 
-function mettreAJourAffichageLed(num, active, mode) {
-    const indicateur = document.getElementById(`indicateur-led${num}`);
-    const texte      = document.getElementById(`texte-led${num}`);
-    const btnOnoff   = document.getElementById(`btn-onoff-led${num}`);
-    const badge      = document.getElementById(`badge-led${num}`);
 
-    if (active) {
+// ================================================================
+// PHARES AVANT (2 LEDs, blanc pleine puissance)
+// ================================================================
+let pharesActifs = false;
+
+function togglePhares() {
+    pharesActifs = !pharesActifs;
+    socket.emit('toggle_phares', { active: pharesActifs });
+    mettreAJourAffichagePhares(pharesActifs);
+}
+
+function mettreAJourAffichagePhares(actif) {
+    pharesActifs = actif;
+    const indicateur = document.getElementById('indicateur-phares');
+    const texte      = document.getElementById('texte-phares');
+    const btn        = document.getElementById('btn-phares');
+
+    if (actif) {
         indicateur.className = 'indicateur-on';
-        texte.textContent    = 'Allume';
-        btnOnoff.textContent = 'Eteindre';
-        btnOnoff.className   = 'btn-camera btn-camera-off';
+        texte.textContent    = 'Allumes';
+        btn.textContent      = 'Eteindre';
+        btn.className        = 'btn-camera btn-camera-off';
     } else {
         indicateur.className = 'indicateur-off';
-        texte.textContent    = 'Eteint';
-        btnOnoff.textContent = 'Allumer';
-        btnOnoff.className   = 'btn-camera btn-camera-on';
+        texte.textContent    = 'Eteints';
+        btn.textContent      = 'Allumer';
+        btn.className        = 'btn-camera btn-camera-on';
     }
-
-    const modeAff     = mode > 0 ? mode : ledMode[num];
-    badge.textContent = MODES_LED[modeAff];
-    badge.className   = `mode-actuel-badge ${CLASSES_LED[modeAff]}`;
-    ledOn[num]        = active;
-    if (mode > 0) ledMode[num] = mode;
 }
 
 
