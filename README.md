@@ -18,14 +18,18 @@ Vehicule teleguide autonome — PFE ELE795, Ecole de technologie superieure, ete
     sketch/              MCU (STM32) — temps reel, capteurs, actionneurs
       sketch.ino           setup/loop, enregistrement des RPC Bridge
       config.h             Constantes materielles centralisees (broches, adresses, seuils)
+      bus_i2c.h/cpp        Scan I2C unique au demarrage + cache de presence
       comm_bridge.h/cpp    Bridge RPC, reception des donnees de vision
       moteurs.h/cpp        Carte Hiwonder, encodeurs, I2C bas niveau
       imu.h/cpp            MPU-6050, calibration gyroscope
       deplacement.h/cpp    Machine a etats, joystick, asservissement encodeurs + gyro
       leds.h/cpp           Bandeaux WS2812B (NeoPixel)
       ecran.h/cpp          Ecran ILI9341, affichage
-      ultrason.h/cpp       HC-SR04, distance par pulseIn
+      ultrason.h/cpp       HC-SR04, mesure d'echo bornee sur micros()
       lidar.h/cpp          TF-Luna, distance par I2C
+      servo_lidar.h/cpp    SG90, PWM logiciel (support du LiDAR)
+      obstacle.h/cpp       Fusion ultrason + LiDAR, sondage par secteurs
+      test_capteurs.h/cpp  Releve serie periodique (bascule TEST_CAPTEURS_ACTIF)
 
     python/              MPU (Qualcomm Linux) — serveur web, vision, Bridge
       main.py              Point d'entree
@@ -222,8 +226,13 @@ Attendu : `0x34` (moteurs), `0x68` (IMU), `0x10` (LiDAR).
 | `arreter_mouvement` | aucun | Arret d'urgence |
 | `mouvement_actif` | aucun, retourne int (0/1) | Polling fin de mouvement |
 | `mode_led1`, `mode_led2` | int | 0=off, 1=gyro, 2=cligno, 3=phares |
-| `lire_ultrason_cm` | aucun, retourne int | Distance frontale HC-SR04 (cm) |
+| `lire_ultrason_cm` | aucun, retourne int | Distance frontale HC-SR04 (cm), plafond `ULTRASON_DISTANCE_MAX` = voie degagee |
 | `lire_lidar_cm` | aucun, retourne int | Distance frontale TF-Luna (cm), -1 si invalide |
+| `servo_angle` | int (0-180) | Oriente le servo de balayage, 90 = droit devant |
+| `obstacle_frontal_cm` | aucun, retourne int | Distance fusionnee ultrason + LiDAR (cm) |
+| `obstacle_detecte` | aucun, retourne int (0/1) | Obstacle sous `OBSTACLE_SEUIL_CM` |
+| `lancer_sondage` | aucun | Sonde les trois secteurs (~1 s, vehicule a l'arret) |
+| `cote_degage` | aucun, retourne int | 0 = sondage en cours, 1 = gauche, 2 = droite |
 
 RPC dans l'autre sens (MCU recoit du MPU) : `on_feu(bool, int, int)`, `on_lignes(bool, int)`.
 

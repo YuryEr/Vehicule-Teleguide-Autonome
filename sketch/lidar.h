@@ -63,4 +63,19 @@ void Lidar_MettreAJour(void);
  */
 int Lidar_DistanceCm(void);
 
+/*
+ * Lidar_MesurerMaintenant
+ *
+ * DECLENCHE IMMEDIATEMENT UNE LECTURE I2C, SANS PASSER PAR LE CACHE
+ * PERIODIQUE. DESTINEE AU SONDAGE PAR SECTEURS, QUI DOIT ASSOCIER CHAQUE
+ * DISTANCE A L'ORIENTATION EXACTE DU SERVO AU MOMENT DE LA MESURE.
+ *
+ * PARAMETRE :
+ * distCm — RECOIT LA DISTANCE MESUREE, EN CM, SI LA LECTURE EST VALIDE
+ *
+ * RETOUR :
+ * true SI LA LECTURE EST VALIDE, false SINON
+ */
+bool Lidar_MesurerMaintenant(int &distCm);
+
 #endif

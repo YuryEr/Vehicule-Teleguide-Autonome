@@ -53,26 +53,37 @@
 // Capteur ultrason HC-SR04 (echo via pont diviseur 5V->3.3V)
 #define PIN_ULTRASON_TRIG      2
 #define PIN_ULTRASON_ECHO      3
-#define ULTRASON_DISTANCE_MAX  200    // portee utile (cm)
+#define ULTRASON_DISTANCE_MAX  100    // portee utile (cm)
 #define ULTRASON_PERIODE_MS    100    // rafraichissement (~10 Hz)
 // Bornes de mesure explicites : pulseIn n'honore pas son timeout sur le
-// core Zephyr et fige la boucle si ECHO reste a l'etat haut.
-#define ULTRASON_TIMEOUT_US           12000UL   // 200 cm aller-retour : ~11.6 ms
+// core Zephyr et fige la boucle si ECHO reste a l'etat haut. Le timeout
+// borne aussi l'occupation de la boucle : au dela de la portee utile,
+// l'attente est abandonnee et le balayage servo reprend la main.
+#define ULTRASON_TIMEOUT_US           6000UL    // 100 cm aller-retour : ~5.8 ms
 #define ULTRASON_TIMEOUT_PRESENCE_US  60000UL   // > 38 ms : echo emis sans obstacle
 
 // LiDAR TF-Luna (I2C sur Wire1 / Qwiic, broche CFG a la masse)
 #define REG_LIDAR_DIST        0x00    // 6 registres : dist L/H, force L/H, temp L/H
 #define LIDAR_FORCE_MIN       100     // en dessous : signal trop faible -> rejet
+#define LIDAR_DISTANCE_MIN    20      // zone morte : en deca, la datasheet
+                                      // declare la mesure non fiable
 #define LIDAR_DISTANCE_MAX    800     // portee fiable (cm)
 #define LIDAR_PERIODE_MS      100     // rafraichissement (~10 Hz)
 
 // Servo de balayage SG90 (support du LiDAR)
-#define PIN_SERVO             5       // D5 : libre (D9 = DC ecran)
+#define PIN_SERVO             5       // D5
 #define SERVO_ANGLE_MIN       0
 #define SERVO_ANGLE_MAX       180
 #define SERVO_ANGLE_CENTRE    90      // 90 deg = droit devant
 #define SERVO_MS_PAR_DEGRE    5       // 5 ms/deg ~= 200 deg/s (max SG90 ~300)
 #define SERVO_PULSE_MIN_US    600     // largeur d'impulsion a 0 deg
 #define SERVO_PULSE_MAX_US    2400    // largeur d'impulsion a 180 deg
+
+// Detection d'obstacles (fusion ultrason + LiDAR)
+#define OBSTACLE_SEUIL_CM           40    // en deca : obstacle signale
+#define OBSTACLE_PERIODE_MS         50    // reevaluation de la distance frontale
+#define OBSTACLE_ECART_SONDAGE_DEG  45    // ecart des secteurs lateraux (deg)
+#define OBSTACLE_SENS_SERVO         1     // -1 si gauche et droite sont inverses
+#define OBSTACLE_STABILISATION_MS   40    // attente apres arrivee, avant la mesure
 
 #endif

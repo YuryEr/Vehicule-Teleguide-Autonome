@@ -23,11 +23,11 @@ static bool lireCapteur(int &distCm, uint16_t &force) {
     return true;
 }
 
-// Lecture fiable : signal suffisant, pas de saturation, dans la portee.
+// Lecture fiable : signal suffisant, pas de saturation, hors zone morte.
 static bool lectureValide(int distCm, uint16_t force) {
     if (force < LIDAR_FORCE_MIN) return false;   // surface absorbante / trop loin
     if (force == 65535)          return false;   // saturation (trop proche/reflechissant)
-    if (distCm <= 0 || distCm > LIDAR_DISTANCE_MAX) return false;
+    if (distCm < LIDAR_DISTANCE_MIN || distCm > LIDAR_DISTANCE_MAX) return false;
     return true;
 }
 
@@ -58,4 +58,18 @@ void Lidar_MettreAJour(void) {
 
 int Lidar_DistanceCm(void) {
     return distanceCache;
+}
+
+bool Lidar_MesurerMaintenant(int &distCm) {
+    if (!Lidar_EstPresent()) return false;
+
+    int      lu;
+    uint16_t force;
+    if (!lireCapteur(lu, force) || !lectureValide(lu, force)) return false;
+
+    // Le cache de Lidar_MettreAJour() n'est pas mis a jour ici : il alimente
+    // la RPC lire_lidar_cm, qui decrit la distance frontale. Une mesure prise
+    // en cours de sondage correspond a un autre angle.
+    distCm = lu;
+    return true;
 }

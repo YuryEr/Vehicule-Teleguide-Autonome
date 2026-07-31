@@ -2,6 +2,7 @@
 #include "ultrason.h"
 #include "lidar.h"
 #include "servo_lidar.h"
+#include "obstacle.h"
 
 #ifdef TEST_CAPTEURS_ACTIF
 
@@ -32,6 +33,22 @@ void TestCapteurs_MettreAJour(void) {
     Serial.print(" | servo = ");
     Serial.print(ServoLidar_AngleActuel());
     Serial.println(" deg");
+
+    // Distance frontale fusionnee, puis les trois secteurs du dernier
+    // sondage : "-" quand aucune mesure exploitable n'est disponible.
+    Serial.print("[fusion] frontal = ");
+    Serial.print(Obstacle_DistanceFrontaleCm());
+    Serial.print(" cm");
+    if (Obstacle_EstDetecte()) Serial.print("  << OBSTACLE");
+
+    Serial.print(" | secteurs G/C/D = ");
+    for (int secteur = SECTEUR_GAUCHE; secteur <= SECTEUR_DROITE; secteur++) {
+        int distance = Obstacle_DistanceSecteur(secteur);
+        if (secteur > SECTEUR_GAUCHE) Serial.print("/");
+        if (distance < 0) Serial.print("-");
+        else              Serial.print(distance);
+    }
+    Serial.println();
 }
 
 #else
