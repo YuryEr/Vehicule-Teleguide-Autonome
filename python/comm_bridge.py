@@ -13,7 +13,8 @@ Contrat RPC (Python -> MCU) :
         arreter_mouvement()
         mouvement_actif() -> int (0/1)
     LEDs :
-        mode_led1(int), mode_led2(int)  [0=off, 1=gyro, 2=cligno, 3=phares]
+        mode_bandeaux(int)  [0=eteint, 1=position, 2=gyrophare]
+        mode_phares(int)    [0=eteint, 1=allume]
     Vision :
         on_feu(bool, int, int), on_lignes(bool, int)
 
@@ -112,13 +113,20 @@ def mouvement_actif():
 
 # ======================== LEDs ========================
 
-def definir_mode_led(bandeau, mode):
-    """Change le mode d'un bandeau LED.
+def definir_mode_bandeaux(mode):
+    """Change le mode de la barre haute des deux bandeaux.
 
-    bandeau — numero du bandeau (1 ou 2)
-    mode    — 0=eteint, 1=gyrophare, 2=clignotant, 3=phares
+    mode — 0=eteint, 1=feux de position, 2=gyrophare
     """
-    _appeler(f"mode_led{int(bandeau)}", int(mode))
+    _appeler("mode_bandeaux", int(mode))
+
+
+def definir_phares(actif):
+    """Allume ou eteint les feux : blanc a l'avant, rouge a l'arriere.
+
+    actif — True pour allumer, False pour eteindre
+    """
+    _appeler("mode_phares", 1 if actif else 0)
 
 
 # ======================== Vision ========================

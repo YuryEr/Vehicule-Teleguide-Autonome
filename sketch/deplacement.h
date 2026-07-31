@@ -149,4 +149,19 @@ int Deplacement_EstActif(void);
  */
 void Deplacement_MettreAJour(void);
 
+/*
+ * Deplacement_DirectionVirage
+ *
+ * INDIQUE LE SENS DE LA ROTATION ASSERVIE EN COURS. DESTINEE A LA
+ * SIGNALISATION LUMINEUSE. LES DEPLACEMENTS RECTILIGNES ET LE PILOTAGE
+ * AU JOYSTICK NE SONT PAS CONSIDERES COMME DES VIRAGES.
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * VIRAGE_GAUCHE, VIRAGE_DROITE OU VIRAGE_AUCUN
+ */
+int Deplacement_DirectionVirage(void);
+
 #endif

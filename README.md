@@ -8,7 +8,8 @@ Vehicule teleguide autonome — PFE ELE795, Ecole de technologie superieure, ete
 - **Hiwonder Tank** : chassis chenille, carte moteur I2C (0x34)
 - **MPU-6050** : IMU gyroscope/accelerometre I2C (0x68)
 - **Webcam USB** : detection routiere (YOLO, OpenCV)
-- **Bandeaux LED WS2812B** : adressables, modes gyrophare / clignotant / phares
+- **Bandeaux LED WS2812B** : 7 LEDs par bandeau — barre haute (gyrophare, feux de
+  position), feux avant/arriere et clignotants de virage
 - **Ecran TFT ILI9341** : 320x240, SPI materiel
 - **HC-SR04** : capteur ultrason, detection de presence frontale (cone large)
 - **TF-Luna** : LiDAR I2C (0x10), telemetre frontal (FOV 2 deg)
@@ -24,13 +25,14 @@ Vehicule teleguide autonome — PFE ELE795, Ecole de technologie superieure, ete
       moteurs.h/cpp        Carte Hiwonder, encodeurs, I2C bas niveau
       imu.h/cpp            MPU-6050, calibration gyroscope
       deplacement.h/cpp    Machine a etats, joystick, asservissement encodeurs + gyro
-      leds.h/cpp           Bandeaux WS2812B (NeoPixel)
+      leds.h/cpp           Bandeaux WS2812B : barre, feux, clignotants
       ecran.h/cpp          Ecran ILI9341, affichage
       ultrason.h/cpp       HC-SR04, mesure d'echo bornee sur micros()
       lidar.h/cpp          TF-Luna, distance par I2C
       servo_lidar.h/cpp    SG90, PWM logiciel (support du LiDAR)
       obstacle.h/cpp       Fusion ultrason + LiDAR, sondage par secteurs
       test_capteurs.h/cpp  Releve serie periodique (bascule TEST_CAPTEURS_ACTIF)
+      test_leds.h/cpp      Demonstration des modes au demarrage (TEST_LEDS_ACTIF)
 
     python/              MPU (Qualcomm Linux) — serveur web, vision, Bridge
       main.py              Point d'entree
@@ -60,8 +62,8 @@ seule source de verite du code. Les tableaux ci-dessous doivent lui correspondre
 | D2 | Ultrason — TRIG |
 | D3 | Ultrason — ECHO |
 | D5 | Servo SG90 — signal |
-| D6 | Bandeau LED 1 — data |
-| D7 | Bandeau LED 2 — data |
+| D6 | Bandeau LED avant — data |
+| D7 | Bandeau LED arriere — data |
 | D8 | Ecran — RESET |
 | D9 | Ecran — DC |
 | D10 | Ecran — CS |
@@ -125,10 +127,19 @@ generee par `servo_lidar.cpp`.
 
 | Broche du bandeau | Broche UNO Q | Role |
 |---|---|---|
-| DI (bandeau 1) | D6 | Donnees. Sur WS2813, relier BI a la meme broche |
-| DI (bandeau 2) | D7 | Donnees. Non connecte pour l'instant |
+| DI (bandeau avant) | D6 | Donnees. Sur WS2813, relier BI a la meme broche |
+| DI (bandeau arriere) | D7 | Donnees |
 | VCC | 5V | Alimentation |
 | GND | GND | Masse |
+
+Chaque bandeau porte **7 LEDs en serie sur une seule ligne de donnees**, decoupees
+en deux zones par le logiciel :
+
+| Pixels | Zone | Role |
+|---|---|---|
+| 0 a 4 | Barre haute | Feux de position ou gyrophare |
+| 5 | Feu droit | Blanc a l'avant, rouge a l'arriere, orange en clignotant |
+| 6 | Feu gauche | Idem |
 
 La logique de l'UNO Q est en 3.3V : le seuil des WS2812B est limite mais fonctionne
 en pratique, aucun level-shifter n'a ete necessaire.
@@ -311,7 +322,8 @@ Attendu : `0x34` (moteurs), `0x68` (IMU), `0x10` (LiDAR).
 | `tourner_droite_deg` | float (positif) | Rotation droite asservie |
 | `arreter_mouvement` | aucun | Arret d'urgence |
 | `mouvement_actif` | aucun, retourne int (0/1) | Polling fin de mouvement |
-| `mode_led1`, `mode_led2` | int | 0=off, 1=gyro, 2=cligno, 3=phares |
+| `mode_bandeaux` | int | Barre haute : 0=eteint, 1=position, 2=gyrophare |
+| `mode_phares` | int (0/1) | Feux : blanc a l'avant, rouge a l'arriere |
 | `lire_ultrason_cm` | aucun, retourne int | Distance frontale HC-SR04 (cm), plafond `ULTRASON_DISTANCE_MAX` = voie degagee |
 | `lire_lidar_cm` | aucun, retourne int | Distance frontale TF-Luna (cm), -1 si invalide |
 | `servo_angle` | int (0-180) | Oriente le servo de balayage, 90 = droit devant |

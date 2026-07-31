@@ -1,7 +1,7 @@
 <!--
     Interface web de controle — TankETS
     PFE ELE795 - ETS - Ete 2026
-    Onglet Pilotage : joystick, camera, LEDs
+    Onglet Pilotage : joystick, camera, bandeaux LED, phares
     Onglet Programmation : blocs Blockly (mode programme)
 -->
 <!DOCTYPE html>
@@ -18,7 +18,7 @@
 <body>
 
     <div class="header">
-        <h1 class="titre">TankETS</h1>
+        <h1 class="titre">Véhicule Téléguidé Autonome</h1>
         <div class="onglets">
             <button class="onglet onglet-actif" id="btn-onglet-pilotage"
                     onclick="afficherOnglet('pilotage')">Pilotage</button>
@@ -56,40 +56,29 @@
             </div>
 
             <div class="container">
-                <h2 class="section-titre">LED BANDEAU 1</h2>
+                <h2 class="section-titre">BANDEAUX LED</h2>
                 <div class="camera-statut">
-                    <span class="indicateur-off" id="indicateur-led1">●</span>
-                    <span id="texte-led1">Eteint</span>
+                    <span class="indicateur-off" id="indicateur-bandeaux">●</span>
+                    <span>Avant + arriere</span>
                 </div>
-                <button class="btn-camera btn-camera-on" id="btn-onoff-led1"
-                        onclick="toggleOnoffLed(1)">
-                    Allumer
-                </button>
-                <div class="mode-actuel-badge mode-led-gyrophare" id="badge-led1">
-                    GYROPHARE
+                <div class="mode-actuel-badge mode-led-eteint" id="badge-bandeaux">
+                    ETEINTS
                 </div>
-                <button class="btn-mode" id="btn-mode-led1"
-                        onclick="changerModeLed(1)">
+                <button class="btn-mode" id="btn-mode-bandeaux"
+                        onclick="changerModeBandeaux()">
                     Changer mode
                 </button>
             </div>
 
             <div class="container">
-                <h2 class="section-titre">LED BANDEAU 2</h2>
+                <h2 class="section-titre">PHARES AVANT</h2>
                 <div class="camera-statut">
-                    <span class="indicateur-off" id="indicateur-led2">●</span>
-                    <span id="texte-led2">Eteint</span>
+                    <span class="indicateur-off" id="indicateur-phares">●</span>
+                    <span id="texte-phares">Eteints</span>
                 </div>
-                <button class="btn-camera btn-camera-on" id="btn-onoff-led2"
-                        onclick="toggleOnoffLed(2)">
+                <button class="btn-camera btn-camera-on" id="btn-phares"
+                        onclick="togglePhares()">
                     Allumer
-                </button>
-                <div class="mode-actuel-badge mode-led-gyrophare" id="badge-led2">
-                    GYROPHARE
-                </div>
-                <button class="btn-mode" id="btn-mode-led2"
-                        onclick="changerModeLed(2)">
-                    Changer mode
                 </button>
             </div>
 
@@ -160,8 +149,8 @@
         <block type="reculer"></block>
         <block type="tourner_gauche"></block>
         <block type="tourner_droite"></block>
-        <block type="led_allumer"></block>
-        <block type="led_eteindre"></block>
+        <block type="bandeaux_mode"></block>
+        <block type="phares"></block>
         <block type="attendre"></block>
     </xml>
 

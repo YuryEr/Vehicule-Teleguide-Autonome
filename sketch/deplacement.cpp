@@ -82,6 +82,11 @@ int Deplacement_EstActif(void) {
     return (etatMouvement != INACTIF) ? 1 : 0;
 }
 
+int Deplacement_DirectionVirage(void) {
+    if (etatMouvement != ROTATION) return VIRAGE_AUCUN;
+    return (signeRotation > 0) ? VIRAGE_GAUCHE : VIRAGE_DROITE;
+}
+
 // ======================== Mise a jour ========================
 
 void Deplacement_MettreAJour(void) {
