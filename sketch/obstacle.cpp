@@ -26,7 +26,19 @@ static unsigned long tArrivee         = 0;
 static unsigned long tRetourAxe       = 0;
 static int           distanceFrontale = ULTRASON_DISTANCE_MAX;
 
+static bool          sondageAuto      = true;
+static bool          detectePrecedent = false;
+static unsigned long tDernierSondage  = 0;
+
 // ======================== Distance frontale ========================
+
+// Ramene une mesure au pare-choc avant, reference commune aux deux capteurs.
+// Sans cette correction, la fusion comparerait deux distances prises depuis
+// deux origines differentes.
+static int ramenerAuPareChoc(int distanceCm, int reculCm) {
+    int corrigee = distanceCm - reculCm;
+    return (corrigee < 0) ? 0 : corrigee;
+}
 
 // Retient la plus petite des mesures valides. L'ultrason couvre un cone
 // large et voit de pres ; le LiDAR est precis mais n'eclaire que deux
@@ -36,8 +48,9 @@ static void evaluerFrontal(void) {
     int retenue = ULTRASON_DISTANCE_MAX;
 
     int ultrason = Ultrason_DistanceCm();
-    if (Ultrason_EstPresent() && ultrason > 0 && ultrason < retenue) {
-        retenue = ultrason;
+    if (Ultrason_EstPresent() && ultrason > 0) {
+        int corrigee = ramenerAuPareChoc(ultrason, ULTRASON_RECUL_CM);
+        if (corrigee < retenue) retenue = corrigee;
     }
 
     // Pendant un sondage le servo quitte l'axe : la mesure LiDAR ne decrit
@@ -46,7 +59,10 @@ static void evaluerFrontal(void) {
     if (etat == INACTIF
         && (millis() - tRetourAxe) >= LIDAR_PERIODE_MS) {
         int lidar = Lidar_DistanceCm();
-        if (lidar > 0 && lidar < retenue) retenue = lidar;
+        if (lidar > 0) {
+            int corrigee = ramenerAuPareChoc(lidar, LIDAR_RECUL_CM);
+            if (corrigee < retenue) retenue = corrigee;
+        }
     }
 
     distanceFrontale = retenue;
@@ -85,6 +101,17 @@ void Obstacle_MettreAJour(void) {
         tPrecedent = maintenant;
         evaluerFrontal();
     }
+
+    // Front montant de la detection : le LiDAR part chercher de quel cote
+    // contourner. La temporisation empeche une mesure instable autour du
+    // seuil de relancer le servo en continu.
+    bool detecte = Obstacle_EstDetecte();
+    if (sondageAuto && detecte && !detectePrecedent
+        && (maintenant - tDernierSondage) >= OBSTACLE_RELANCE_MIN_MS) {
+        tDernierSondage = maintenant;
+        Obstacle_LancerSondage();
+    }
+    detectePrecedent = detecte;
 
     switch (etat) {
 
@@ -141,6 +168,8 @@ int Obstacle_DistanceSecteur(int secteur) {
     if (secteur < 0 || secteur >= NB_SECTEURS) return -1;
     return distancesSecteurs[secteur];
 }
+
+void Obstacle_DefinirSondageAuto(bool actif) { sondageAuto = actif; }
 
 int Obstacle_CoteLePlusDegage(void) {
     return (degagementSecteur(SECTEUR_GAUCHE)

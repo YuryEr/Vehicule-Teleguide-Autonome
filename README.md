@@ -10,8 +10,9 @@ Vehicule teleguide autonome — PFE ELE795, Ecole de technologie superieure, ete
 - **Webcam USB** : detection routiere (YOLO, OpenCV)
 - **Bandeaux LED WS2812B** : adressables, modes gyrophare / clignotant / phares
 - **Ecran TFT ILI9341** : 320x240, SPI materiel
-- **HC-SR04** : capteur ultrason, distance frontale
-- **TF-Luna** : LiDAR I2C (0x10), distance frontale
+- **HC-SR04** : capteur ultrason, detection de presence frontale (cone large)
+- **TF-Luna** : LiDAR I2C (0x10), telemetre frontal (FOV 2 deg)
+- **Servo SG90** : support orientable du LiDAR, sondage par secteurs
 
 ## Architecture logicielle
 
@@ -48,31 +49,108 @@ Vehicule teleguide autonome — PFE ELE795, Ecole de technologie superieure, ete
 
 ## Brochage
 
-| Peripherique | Broches UNO Q | Notes |
+Toutes les broches numeriques sont declarees dans `sketch/config.h` : c'est la
+seule source de verite du code. Les tableaux ci-dessous doivent lui correspondre.
+
+### Vue d'ensemble des broches occupees
+
+| Broche UNO Q | Utilisation |
+|---|---|
+| Qwiic (Wire1) | Carte moteur 0x34, IMU 0x68, LiDAR 0x10 |
+| D2 | Ultrason — TRIG |
+| D3 | Ultrason — ECHO |
+| D5 | Servo SG90 — signal |
+| D6 | Bandeau LED 1 — data |
+| D7 | Bandeau LED 2 — data |
+| D8 | Ecran — RESET |
+| D9 | Ecran — DC |
+| D10 | Ecran — CS |
+| D11 | Ecran — MOSI (SPI materiel) |
+| D12 | Ecran — MISO (SPI materiel, non utilise en ecriture) |
+| D13 | Ecran — SCK (SPI materiel) |
+
+### Peripheriques I2C — bus Qwiic (`Wire1`)
+
+Les trois peripheriques partagent le meme bus. Aucune adresse n'entre en conflit.
+
+| Peripherique | Adresse | Alimentation | Particularite |
+|---|---|---|---|
+| Carte moteur Hiwonder | 0x34 | Alimentation propre du chassis | — |
+| IMU MPU-6050 | 0x68 | 3.3V du Qwiic | — |
+| LiDAR TF-Luna | 0x10 | **5V** (pas le 3.3V du Qwiic) | Broche **CFG a la masse** + power cycle |
+
+**TF-Luna — alimenter en 5V.** Le capteur demande 3.7-5.2V ; le 3.3V du Qwiic est
+sous son minimum. On utilise le Qwiic pour SDA/SCL/GND, mais VCC vient du 5V.
+
+**TF-Luna — CFG a la masse, puis power cycle.** CFG (broche 5) reliee a GND
+selectionne le mode I2C. Le mode est **lu au demarrage du capteur** : apres avoir
+branche CFG, il faut **couper et remettre l'alimentation**, sinon le capteur reste
+en UART et n'apparait jamais sur le bus.
+
+**Sans aucun peripherique sur le Qwiic**, les lignes flottent faute de resistances
+de tirage et toutes les transactions I2C partent en timeout.
+
+### Ultrason HC-SR04
+
+| Broche du capteur | Broche UNO Q | Role |
 |---|---|---|
-| Carte moteur Hiwonder | I2C Wire1 (Qwiic), 0x34 | |
-| IMU MPU-6050 | I2C Wire1 (Qwiic), 0x68 | |
-| LiDAR TF-Luna | I2C Wire1 (Qwiic), 0x10 | VCC sur **5V**, broche CFG a la **masse** |
-| Bandeau LED 1 | D6 (data) | DI (et BI si WS2813) sur la meme broche |
-| Bandeau LED 2 | D7 (data) | non connecte pour l'instant |
-| Ultrason HC-SR04 | TRIG = D2, ECHO = D3 | ECHO via **pont diviseur 22k/47k** |
-| Ecran ILI9341 | CS = D10, DC = D9, RST = D8 | SPI materiel : MOSI D11, SCK D13, MISO D12 |
+| VCC | 5V | Alimentation |
+| TRIG | D2 | Declenchement de la salve (impulsion 10 us) |
+| ECHO | D3 | Duree de l'echo, en direct (sans pont diviseur) |
+| GND | GND | Masse |
 
-### Pieges de cablage (verifies sur le terrain)
+**ECHO se branche en direct.** Le montage a d'abord utilise un pont diviseur
+22k/47k pour ramener la sortie 5V du capteur a ~3.4V. Il s'est avere inutile : la
+liaison directe fonctionne correctement sur notre carte. A noter pour la
+reproductibilite — la tolerance 5V des broches D de l'UNO Q n'est **pas garantie**
+par Arduino (seuls certains pads STM32U585 sont 5V-tolerants, et jamais en mode
+analogique). Le montage fonctionne, mais il sort de la plage documentee.
 
-- **HC-SR04 — pont diviseur obligatoire sur ECHO.** Le capteur sort du 5V ; la
-  tolerance 5V des broches D de l'UNO Q n'est **pas garantie** par Arduino
-  (seuls certains pads STM32U585 sont 5V-tolerants, et jamais en mode analogique).
-  Utiliser 22k (ECHO -> broche) + 47k (broche -> GND), soit ~3.4V.
-- **TF-Luna — alimenter en 5V, pas via le 3.3V du Qwiic.** Le capteur demande
-  **3.7-5.2V** ; le 3.3V du Qwiic est sous son minimum. On utilise le Qwiic pour
-  SDA/SCL/GND, mais VCC vient du 5V.
-- **TF-Luna — broche CFG a la masse + power cycle.** CFG (broche 5) reliee a GND
-  selectionne le mode I2C. Le mode est **lu au demarrage du capteur** : apres avoir
-  branche CFG, il faut **couper et remettre l'alimentation**, sinon il reste en UART
-  et n'apparait jamais sur le bus I2C.
-- **LEDs et ecran** : logique 3.3V de l'UNO Q, aucun level-shifter necessaire pour
-  l'ILI9341. Pour les WS2812B le seuil est limite mais fonctionne en pratique.
+**TRIG est pilote en 3.3V** alors que le seuil du HC-SR04 se situe vers 3.5V.
+Cela fonctionne sur nos exemplaires ; un capteur qui ne declencherait jamais est
+la premiere piste a examiner.
+
+### Servo de balayage SG90
+
+| Fil du servo | Broche UNO Q | Role |
+|---|---|---|
+| Orange / jaune | D5 | Signal PWM (genere en logiciel) |
+| Rouge | 5V | Alimentation |
+| Brun / noir | GND | Masse, commune avec la carte |
+
+La librairie `Servo` est inutilisable sur ce core (voir plus bas) : l'impulsion est
+generee par `servo_lidar.cpp`.
+
+### Bandeaux LED WS2812B
+
+| Broche du bandeau | Broche UNO Q | Role |
+|---|---|---|
+| DI (bandeau 1) | D6 | Donnees. Sur WS2813, relier BI a la meme broche |
+| DI (bandeau 2) | D7 | Donnees. Non connecte pour l'instant |
+| VCC | 5V | Alimentation |
+| GND | GND | Masse |
+
+La logique de l'UNO Q est en 3.3V : le seuil des WS2812B est limite mais fonctionne
+en pratique, aucun level-shifter n'a ete necessaire.
+
+### Ecran TFT ILI9341 — SPI materiel
+
+| Broche de l'ecran | Broche UNO Q | Role |
+|---|---|---|
+| CS | D10 | Selection du peripherique |
+| RESET | D8 | Reinitialisation |
+| DC (ou RS) | D9 | Choix donnee / commande |
+| SDI (MOSI) | D11 | Donnees vers l'ecran |
+| SCK | D13 | Horloge SPI |
+| SDO (MISO) | D12 | Donnees depuis l'ecran, non utilise en ecriture |
+| VCC | *a confirmer sur le module* | Alimentation |
+| LED | *a confirmer sur le module* | Retroeclairage |
+| GND | GND | Masse |
+
+Les six lignes de signal sont celles declarees dans `config.h` et le materiel SPI de
+la carte. L'alimentation et le retroeclairage dependent du modele de carte de
+decouplage et doivent etre releves sur l'exemplaire utilise. Aucun level-shifter
+n'est necessaire : l'ILI9341 accepte la logique 3.3V de l'UNO Q.
 
 ## Librairies Arduino — versions critiques
 
@@ -105,6 +183,14 @@ Les autres librairies visibles a la compilation (`Arduino_RouterBridge`, `Arduin
 `MsgPack`, `DebugLog`, `ArxTypeTraits`, `ArxContainer`, `Wire`) sont des dependances
 **automatiques** du systeme Bridge et du core. Ne pas les epingler dans `sketch.yaml` :
 elles forment un ensemble coherent livre avec le Bridge.
+
+### Librairie a ne pas utiliser
+
+**`Servo` est inutilisable sur ce core.** Des qu'elle coexiste avec NeoPixel, l'edition
+de liens echoue sur `undefined reference to noInterrupts()/interrupts()`. Le servo de
+balayage est donc pilote par un PWM logiciel dans `sketch/servo_lidar.cpp` : l'impulsion
+est mesuree par attente active sur `micros()`, `delayMicroseconds()` etant imprecis sous
+le scheduler Zephyr.
 
 ## Guide de deploiement — Arduino UNO Q
 

@@ -50,7 +50,7 @@
 #define PIN_TFT_DC   9
 #define PIN_TFT_RST  8
 
-// Capteur ultrason HC-SR04 (echo via pont diviseur 5V->3.3V)
+// Capteur ultrason HC-SR04 (ECHO relie en direct, sans pont diviseur)
 #define PIN_ULTRASON_TRIG      2
 #define PIN_ULTRASON_ECHO      3
 #define ULTRASON_DISTANCE_MAX  100    // portee utile (cm)
@@ -78,6 +78,7 @@
 #define SERVO_MS_PAR_DEGRE    5       // 5 ms/deg ~= 200 deg/s (max SG90 ~300)
 #define SERVO_PULSE_MIN_US    600     // largeur d'impulsion a 0 deg
 #define SERVO_PULSE_MAX_US    2400    // largeur d'impulsion a 180 deg
+#define SERVO_MAINTIEN_MS     400     // maintien actif apres l'arrivee a la cible
 
 // Detection d'obstacles (fusion ultrason + LiDAR)
 #define OBSTACLE_SEUIL_CM           40    // en deca : obstacle signale
@@ -85,5 +86,13 @@
 #define OBSTACLE_ECART_SONDAGE_DEG  45    // ecart des secteurs lateraux (deg)
 #define OBSTACLE_SENS_SERVO         1     // -1 si gauche et droite sont inverses
 #define OBSTACLE_STABILISATION_MS   40    // attente apres arrivee, avant la mesure
+#define OBSTACLE_RELANCE_MIN_MS     2000  // intervalle minimal entre deux sondages
+
+// Recul de chaque capteur par rapport au pare-choc avant (cm). Les mesures
+// sont ramenees a cette reference commune : sans cela, la fusion comparerait
+// deux distances prises depuis deux origines differentes. A mesurer sur la
+// coque finale, les deux capteurs n'etant pas superposes.
+#define ULTRASON_RECUL_CM           0
+#define LIDAR_RECUL_CM              0
 
 #endif
