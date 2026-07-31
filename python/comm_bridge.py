@@ -167,3 +167,43 @@ def definir_angle_servo(angle):
     angle — degres (0 a 180, 90 = droit devant)
     """
     _appeler("servo_angle", int(max(0, min(180, angle))))
+
+# ======================== Detection d'obstacles ========================
+
+def lire_obstacle_frontal_cm():
+    """Distance de l'obstacle le plus proche devant le vehicule.
+
+    Fusion de l'ultrason et du LiDAR cote MCU : la plus petite des mesures
+    valides. La valeur plafond signifie voie degagee.
+
+    Retourne : int — distance en cm, None si la lecture Bridge echoue.
+    """
+    return _appeler_avec_retour("obstacle_frontal_cm")
+
+
+def obstacle_detecte():
+    """Retourne True si un obstacle est signale sous le seuil du MCU."""
+    return bool(_appeler_avec_retour("obstacle_detecte"))
+
+
+def lancer_sondage():
+    """Demarre un sondage des trois secteurs. Dure environ une seconde.
+
+    Le vehicule doit etre a l'arret : en mouvement, les trois mesures
+    decriraient trois positions differentes.
+    """
+    _appeler("lancer_sondage")
+
+
+def lire_cote_degage():
+    """Cote le plus degage releve par le dernier sondage.
+
+    Retourne : "gauche", "droite", ou None si le sondage est encore en
+               cours ou si la lecture Bridge echoue.
+    """
+    valeur = _appeler_avec_retour("cote_degage")
+    if valeur == 1:
+        return "gauche"
+    if valeur == 2:
+        return "droite"
+    return None

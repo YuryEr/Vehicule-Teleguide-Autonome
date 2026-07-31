@@ -46,4 +46,18 @@ void Ultrason_MettreAJour(void);
  */
 int Ultrason_DistanceCm(void);
 
+/*
+ * Ultrason_EstPresent
+ *
+ * INDIQUE SI LE CAPTEUR A REPONDU LORS DU SONDAGE D'INITIALISATION.
+ * UN CAPTEUR ABSENT NE DECLENCHE AUCUNE MESURE DANS LA BOUCLE.
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * VRAI SI LE CAPTEUR EST PRESENT
+ */
+bool Ultrason_EstPresent(void);
+
 #endif
