@@ -1,0 +1,83 @@
+#ifndef LEDS_H
+#define LEDS_H
+
+#include <Arduino.h>
+
+#define MODE_BANDEAUX_ETEINT     0
+#define MODE_BANDEAUX_POSITION   1
+#define MODE_BANDEAUX_GYROPHARE  2
+
+/*
+ * Leds_Initialiser
+ *
+ * INITIALISE LES DEUX BANDEAUX DE 7 LEDS ET LES ETEINT.
+ * A APPELER UNE FOIS DANS setup().
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Leds_Initialiser(void);
+
+/*
+ * Leds_DefinirModeBandeaux
+ *
+ * CHANGE LE MODE DE LA BARRE HAUTE DES DEUX BANDEAUX. N'AFFECTE NI LES
+ * FEUX NI LES CLIGNOTANTS, QUI SONT DES COUCHES DISTINCTES.
+ *
+ * PARAMETRE :
+ * mode — MODE_BANDEAUX_ETEINT, MODE_BANDEAUX_POSITION
+ *        OU MODE_BANDEAUX_GYROPHARE
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Leds_DefinirModeBandeaux(int mode);
+
+/*
+ * Leds_DefinirPhares
+ *
+ * ALLUME OU ETEINT LES FEUX : BLANC A L'AVANT, ROUGE A L'ARRIERE,
+ * COMME L'INTERRUPTEUR D'ECLAIRAGE D'UN VEHICULE.
+ *
+ * PARAMETRE :
+ * actif — 0 ETEINT, 1 ALLUME
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Leds_DefinirPhares(int actif);
+
+/*
+ * Leds_DefinirVirage
+ *
+ * DEFINIT LA DIRECTION SIGNALEE PAR LES CLIGNOTANTS. LA VALEUR EST
+ * FOURNIE PAR L'APPELANT A CHAQUE ITERATION : LE MODULE DES LEDS AFFICHE,
+ * IL N'INTERROGE PAS LE DEPLACEMENT.
+ *
+ * PARAMETRE :
+ * direction — VIRAGE_GAUCHE, VIRAGE_DROITE OU VIRAGE_AUCUN
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Leds_DefinirVirage(int direction);
+
+/*
+ * Leds_MettreAJour
+ *
+ * COMPOSE LES TROIS COUCHES (BARRE, FEUX, CLIGNOTANTS) ET N'ENVOIE LE
+ * RESULTAT AUX BANDEAUX QUE S'IL A CHANGE. NON BLOQUANT.
+ * A APPELER A CHAQUE ITERATION DE loop().
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Leds_MettreAJour(void);
+
+#endif

@@ -1,0 +1,167 @@
+#ifndef DEPLACEMENT_H
+#define DEPLACEMENT_H
+
+#include <Arduino.h>
+
+/*
+ * Deplacement_JoystickX
+ *
+ * ENREGISTRE LA VALEUR HORIZONTALE DU JOYSTICK. LA COMMANDE
+ * MOTEUR EST APPLIQUEE LORS DE LA RECEPTION DE L'AXE Y.
+ *
+ * PARAMETRE :
+ * x — VALEUR HORIZONTALE (-1.0 A 1.0, GAUCHE/DROITE)
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Deplacement_JoystickX(float x);
+
+/*
+ * Deplacement_JoystickY
+ *
+ * ENREGISTRE LA VALEUR VERTICALE DU JOYSTICK ET APPLIQUE LA
+ * COMMANDE DIFFERENTIELLE AUX MOTEURS. IGNORE SI UN DEPLACEMENT
+ * ASSERVI EST EN COURS.
+ *
+ * PARAMETRE :
+ * y — VALEUR VERTICALE (-1.0 A 1.0, ARRIERE/AVANT)
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Deplacement_JoystickY(float y);
+
+/*
+ * Deplacement_Roues
+ *
+ * APPLIQUE DIRECTEMENT UNE VITESSE POSITIVE A CHAQUE COTE POUR
+ * LE SUIVI DE LIGNE. LES DEUX ROUES AVANCENT ; LA DIFFERENCE DE
+ * VITESSE ASSURE LA DIRECTION. IGNORE SI UN DEPLACEMENT ASSERVI
+ * EST EN COURS.
+ *
+ * PARAMETRES :
+ * gauche — VITESSE COTE GAUCHE (0 A 100)
+ * droite — VITESSE COTE DROIT (0 A 100)
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Deplacement_Roues(int gauche, int droite);
+
+/*
+ * Deplacement_AvancerMetres
+ *
+ * DEMARRE UN DEPLACEMENT RECTILIGNE VERS L'AVANT, ASSERVI PAR
+ * LES ENCODEURS. LE MOUVEMENT S'ARRETE AUTOMATIQUEMENT A LA
+ * DISTANCE CIBLE OU APRES LE TIMEOUT DE SECURITE (12 S).
+ *
+ * PARAMETRE :
+ * distance — DISTANCE EN METRES (TOUJOURS POSITIVE)
+ *
+ * RETOUR :
+ * 1 (MOUVEMENT DEMARRE)
+ */
+int Deplacement_AvancerMetres(float distance);
+
+/*
+ * Deplacement_ReculerMetres
+ *
+ * DEMARRE UN DEPLACEMENT RECTILIGNE VERS L'ARRIERE, ASSERVI PAR
+ * LES ENCODEURS.
+ *
+ * PARAMETRE :
+ * distance — DISTANCE EN METRES (TOUJOURS POSITIVE)
+ *
+ * RETOUR :
+ * 1 (MOUVEMENT DEMARRE)
+ */
+int Deplacement_ReculerMetres(float distance);
+
+/*
+ * Deplacement_TournerGauche
+ *
+ * DEMARRE UNE ROTATION SUR PLACE VERS LA GAUCHE, ASSERVIE PAR
+ * LE GYROSCOPE (MPU-6050). RALENTIT A 20 DEG DU BUT, ARRETE
+ * A 10 DEG AVANT POUR COMPENSER L'INERTIE.
+ *
+ * PARAMETRE :
+ * angle — ANGLE EN DEGRES (TOUJOURS POSITIF)
+ *
+ * RETOUR :
+ * 1 (MOUVEMENT DEMARRE)
+ */
+int Deplacement_TournerGauche(float angle);
+
+/*
+ * Deplacement_TournerDroite
+ *
+ * DEMARRE UNE ROTATION SUR PLACE VERS LA DROITE, ASSERVIE PAR
+ * LE GYROSCOPE.
+ *
+ * PARAMETRE :
+ * angle — ANGLE EN DEGRES (TOUJOURS POSITIF)
+ *
+ * RETOUR :
+ * 1 (MOUVEMENT DEMARRE)
+ */
+int Deplacement_TournerDroite(float angle);
+
+/*
+ * Deplacement_Arreter
+ *
+ * ARRET D'URGENCE : STOPPE LES MOTEURS ET REMET LA MACHINE
+ * A ETATS A INACTIF. APPELABLE A TOUT MOMENT.
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * 1
+ */
+int Deplacement_Arreter(void);
+
+/*
+ * Deplacement_EstActif
+ *
+ * INDIQUE SI UN DEPLACEMENT ASSERVI EST EN COURS.
+ * INTERROGE PAR PYTHON POUR SAVOIR QUAND PASSER AU BLOC SUIVANT.
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * 1 SI UN MOUVEMENT EST EN COURS, 0 SINON
+ */
+int Deplacement_EstActif(void);
+
+/*
+ * Deplacement_MettreAJour
+ *
+ * FAIT PROGRESSER LA MACHINE A ETATS D'UN PAS. DOIT ETRE
+ * APPELE A CHAQUE ITERATION DE LOOP().
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Deplacement_MettreAJour(void);
+
+/*
+ * Deplacement_DirectionVirage
+ *
+ * INDIQUE LE SENS DE LA ROTATION ASSERVIE EN COURS. DESTINEE A LA
+ * SIGNALISATION LUMINEUSE. LES DEPLACEMENTS RECTILIGNES ET LE PILOTAGE
+ * AU JOYSTICK NE SONT PAS CONSIDERES COMME DES VIRAGES.
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * VIRAGE_GAUCHE, VIRAGE_DROITE OU VIRAGE_AUCUN
+ */
+int Deplacement_DirectionVirage(void);
+
+#endif

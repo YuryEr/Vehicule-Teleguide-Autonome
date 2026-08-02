@@ -1,0 +1,51 @@
+#ifndef IMU_H
+#define IMU_H
+
+#include <Arduino.h>
+
+/*
+ * Imu_Initialiser
+ *
+ * REVEILLE LE CAPTEUR MPU-6050 EN ECRIVANT 0 DANS LE REGISTRE
+ * PWR_MGMT_1. LE CAPTEUR EST SUR LE BUS I2C WIRE1 (0x68).
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Imu_Initialiser(void);
+
+/*
+ * Imu_Calibrer
+ *
+ * MESURE L'OFFSET DU GYROSCOPE AXE Z EN MOYENNANT 200 LECTURES.
+ * LE VEHICULE DOIT ETRE IMMOBILE PENDANT CETTE OPERATION (~1 s).
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Imu_Calibrer(void);
+
+/*
+ * Imu_LireGyroZ
+ *
+ * LIT LA VITESSE ANGULAIRE SUR L'AXE Z, CORRIGEE PAR L'OFFSET
+ * DE CALIBRATION. SENSIBILITE : 131 LSB PAR DEGRE/S (±250 DEG/S).
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * VITESSE ANGULAIRE EN DEGRES PAR SECONDE
+ */
+float Imu_LireGyroZ(void);
+
+// RETOURNE VRAI SI LE MPU-6050 A REPONDU SUR LE BUS I2C A L'INITIALISATION.
+bool Imu_EstPresent(void);
+
+#endif

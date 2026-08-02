@@ -1,0 +1,165 @@
+<!--
+    Interface web de controle — TankETS
+    PFE ELE795 - ETS - Ete 2026
+    Onglet Pilotage : joystick, camera, bandeaux LED, phares
+    Onglet Programmation : blocs Blockly (mode programme)
+-->
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TankETS — Controle</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Roboto+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="header">
+        <h1 class="titre">Véhicule Téléguidé Autonome</h1>
+        <div class="onglets">
+            <button class="onglet onglet-actif" id="btn-onglet-pilotage"
+                    onclick="afficherOnglet('pilotage')">Pilotage</button>
+            <button class="onglet" id="btn-onglet-blocs"
+                    onclick="afficherOnglet('blocs')">Programmation</button>
+        </div>
+    </div>
+
+    <div id="error-container" class="error-message" style="display: none;"></div>
+
+    <!-- ================================================================
+         ONGLET 1 : PILOTAGE MANUEL
+    ================================================================ -->
+    <div id="onglet-pilotage" class="main-content">
+
+        <!-- COLONNE GAUCHE -->
+        <div class="colonne-gauche">
+
+            <div class="container">
+                <h2 class="section-titre">MODE DE CONDUITE</h2>
+                <div class="mode-actuel-badge" id="mode-badge">MANUEL</div>
+                <button class="btn-mode" onclick="changerMode()">Changer de mode</button>
+            </div>
+
+            <div class="container">
+                <h2 class="section-titre">CAMERA</h2>
+                <div class="camera-statut">
+                    <span class="indicateur-on" id="indicateur-camera">●</span>
+                    <span id="texte-camera">Active</span>
+                </div>
+                <button class="btn-camera btn-camera-off" id="btn-camera"
+                        onclick="toggleCamera()">
+                    Eteindre la camera
+                </button>
+            </div>
+
+            <div class="container">
+                <h2 class="section-titre">BANDEAUX LED</h2>
+                <div class="camera-statut">
+                    <span class="indicateur-off" id="indicateur-bandeaux">●</span>
+                    <span>Avant + arriere</span>
+                </div>
+                <div class="mode-actuel-badge mode-led-eteint" id="badge-bandeaux">
+                    ETEINTS
+                </div>
+                <button class="btn-mode" id="btn-mode-bandeaux"
+                        onclick="changerModeBandeaux()">
+                    Changer mode
+                </button>
+            </div>
+
+            <div class="container">
+                <h2 class="section-titre">PHARES AVANT</h2>
+                <div class="camera-statut">
+                    <span class="indicateur-off" id="indicateur-phares">●</span>
+                    <span id="texte-phares">Eteints</span>
+                </div>
+                <button class="btn-camera btn-camera-on" id="btn-phares"
+                        onclick="togglePhares()">
+                    Allumer
+                </button>
+            </div>
+
+        </div>
+
+        <!-- CENTRE : Video -->
+        <div class="container container-video">
+            <div id="flux-video-container">
+                <div id="video-placeholder" class="camera-status">
+                    <p class="feedback-text">Connexion a la camera...</p>
+                </div>
+                <img id="video-stream"
+                     src=""
+                     style="display: none; width: 100%; border-radius: 8px;"
+                     alt="Flux video">
+            </div>
+            <p id="detection-texte" style="margin:0.5rem 0 0;
+            font-size:0.85rem;color:#ccc;min-height:1.2em;"></p>
+        </div>
+
+        <!-- COLONNE DROITE : Joystick -->
+        <div class="colonne-droite">
+            <div class="container container-joystick">
+                <h2 class="section-titre">DIRECTION</h2>
+                <div class="joystick-zone" id="joystick-zone">
+                    <div class="joystick-base">
+                        <div class="joystick-poignee" id="joystick-poignee"></div>
+                    </div>
+                </div>
+                <div class="joystick-valeurs" id="joystick-valeurs">
+                    x: 0.00 | y: 0.00
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ================================================================
+         ONGLET 2 : PROGRAMMATION PAR BLOCS
+    ================================================================ -->
+    <div id="onglet-blocs" class="main-content-blocs" style="display: none;">
+
+        <div class="container container-blockly">
+            <div id="blockly-div"></div>
+        </div>
+
+        <div class="container panneau-sequence">
+            <h2 class="section-titre">EXECUTION</h2>
+            <div class="sequence-statut" id="sequence-statut">Pret</div>
+            <button class="btn-executer" id="btn-executer"
+                    onclick="executerBlocs()">
+                ▶ Executer
+            </button>
+            <button class="btn-stop" id="btn-stop"
+                    onclick="stopSequence()" disabled>
+                ■ Stop
+            </button>
+            <button class="btn-effacer" onclick="effacerBlocs()">
+                Effacer tout
+            </button>
+        </div>
+
+    </div>
+
+    <!-- Toolbox Blockly (blocs disponibles) -->
+    <xml id="toolbox" style="display: none">
+        <block type="avancer"></block>
+        <block type="reculer"></block>
+        <block type="tourner_gauche"></block>
+        <block type="tourner_droite"></block>
+        <block type="bandeaux_mode"></block>
+        <block type="phares"></block>
+        <block type="attendre"></block>
+    </xml>
+
+    <!-- Scripts -->
+    <script src="libs/socket.io.min.js"></script>
+    <script src="libs/blockly/blockly_compressed.js"></script>
+    <script src="libs/blockly/blocks_compressed.js"></script>
+    <script src="libs/blockly/fr.js"></script>
+    <script src="app.js"></script>
+
+</body>
+</html>
