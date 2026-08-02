@@ -199,9 +199,14 @@ def on_changer_mode(data):
     etat["mode"] = nouveau_mode
     print(f"[web] Mode vehicule -> {nouveau_mode}")
     socketio.emit("mode_actuel", {"mode": nouveau_mode})
+
+    # Le veto du MCU ne s'applique qu'en autonome : le mode doit lui etre
+    # transmis, il ne le deduit pas des commandes recues.
     if nouveau_mode == "autonome":
+        comm_bridge.definir_mode(comm_bridge.MODE_AUTONOME)
         navigation.activer()
     else:
+        comm_bridge.definir_mode(comm_bridge.MODE_MANUEL)
         navigation.desactiver()
 
 

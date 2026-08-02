@@ -12,6 +12,7 @@
 #include "comm_bridge.h"
 #include "servo_lidar.h"
 #include "obstacle.h"
+#include "securite.h"
 #include "test_capteurs.h"
 
 
@@ -19,6 +20,11 @@
 
 static void rpc_mode_bandeaux(int mode) { Leds_DefinirModeBandeaux(mode); }
 static void rpc_mode_phares(int actif)  { Leds_DefinirPhares(actif); }
+
+// ======================== Mode de conduite ========================
+
+static void rpc_definir_mode(int mode) { Securite_DefinirMode(mode); }
+static int  rpc_veto_actif(void)       { return Securite_VetoActif() ? 1 : 0; }
 
 // ======================== Capteurs de distance ========================
 
@@ -61,6 +67,8 @@ void setup() {
     Bridge.provide_safe("tourner_droite_deg",  Deplacement_TournerDroite);
     Bridge.provide_safe("arreter_mouvement",   Deplacement_Arreter);
     Bridge.provide_safe("mouvement_actif",     Deplacement_EstActif);
+    Bridge.provide_safe("definir_mode",        rpc_definir_mode);
+    Bridge.provide_safe("veto_actif",          rpc_veto_actif);
     Bridge.provide_safe("mode_bandeaux",       rpc_mode_bandeaux);
     Bridge.provide_safe("mode_phares",         rpc_mode_phares);
     Bridge.provide_safe("lire_ultrason_cm",    rpc_lire_ultrason_cm);
@@ -84,8 +92,9 @@ void setup() {
     Lidar_Initialiser();
     ServoLidar_Initialiser();
     Obstacle_Initialiser();
+    Securite_Initialiser();
 
-    Moteurs_Arreter();
+    Securite_Arreter();
 }
 
 // ======================== Loop ========================

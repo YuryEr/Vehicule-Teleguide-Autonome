@@ -31,6 +31,7 @@ Vehicule teleguide autonome — PFE ELE795, Ecole de technologie superieure, ete
       lidar.h/cpp          TF-Luna, distance par I2C
       servo_lidar.h/cpp    SG90, PWM logiciel (support du LiDAR)
       obstacle.h/cpp       Fusion ultrason + LiDAR, sondage par secteurs
+      securite.h/cpp       Veto sur les commandes moteur (mode autonome)
       test_capteurs.h/cpp  Releve serie periodique (bascule TEST_CAPTEURS_ACTIF)
 
     python/              MPU (Qualcomm Linux) — serveur web, vision, Bridge
@@ -321,6 +322,8 @@ Attendu : `0x34` (moteurs), `0x68` (IMU), `0x10` (LiDAR).
 | `tourner_droite_deg` | float (positif) | Rotation droite asservie |
 | `arreter_mouvement` | aucun | Arret d'urgence |
 | `mouvement_actif` | aucun, retourne int (0/1) | Polling fin de mouvement |
+| `definir_mode` | int | 0=manuel (aucun veto), 1=autonome (veto sur obstacle) |
+| `veto_actif` | aucun, retourne int (0/1) | Le MCU refuse-t-il d'avancer ? |
 | `mode_bandeaux` | int | Barre haute : 0=eteint, 1=position, 2=gyrophare |
 | `mode_phares` | int (0/1) | Feux : blanc a l'avant, rouge a l'arriere |
 | `lire_ultrason_cm` | aucun, retourne int | Distance frontale HC-SR04 (cm), plafond `ULTRASON_DISTANCE_MAX` = voie degagee |

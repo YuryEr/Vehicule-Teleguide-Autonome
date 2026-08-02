@@ -1,6 +1,7 @@
 #include "deplacement.h"
 #include "config.h"
 #include "moteurs.h"
+#include "securite.h"
 #include "imu.h"
 
 // ======================== Machine a etats ========================
@@ -33,12 +34,12 @@ void Deplacement_JoystickY(float y) {
     if (etatMouvement != INACTIF) return;
     int gauche = (int)((y - joystickX) * VITESSE_JOYSTICK);
     int droite = (int)((y + joystickX) * VITESSE_JOYSTICK);
-    Moteurs_DefinirVitesse(gauche, droite);
+    Securite_DefinirVitesse(gauche, droite);
 }
 
 void Deplacement_Roues(int gauche, int droite) {
     if (etatMouvement != INACTIF) return;
-    Moteurs_DefinirVitesse(gauche, droite);
+    Securite_DefinirVitesse(gauche, droite);
 }
 
 // ======================== Demarrage mouvements ========================
@@ -49,8 +50,8 @@ static void demarrerAvance(float distance_m, int sens) {
     sensAvance      = sens;
     tDebutMouvement = millis();
     etatMouvement   = AVANCE;
-    Moteurs_DefinirVitesse(sens * VITESSE_DEPLACEMENT,
-                           sens * VITESSE_DEPLACEMENT);
+    Securite_DefinirVitesse(sens * VITESSE_DEPLACEMENT,
+                            sens * VITESSE_DEPLACEMENT);
 }
 
 static void demarrerRotation(float angle_deg, int signe) {
@@ -61,8 +62,8 @@ static void demarrerRotation(float angle_deg, int signe) {
     tPrecRotation   = millis();
     tDebutMouvement = millis();
     etatMouvement   = ROTATION;
-    Moteurs_DefinirVitesse(signe *  VITESSE_ROTATION,
-                           signe * -VITESSE_ROTATION);
+    Securite_DefinirVitesse(signe *  VITESSE_ROTATION,
+                            signe * -VITESSE_ROTATION);
 }
 
 // ======================== API Bridge ========================
@@ -73,7 +74,7 @@ int Deplacement_TournerGauche(float a)  { demarrerRotation(a, +1); return 1; }
 int Deplacement_TournerDroite(float a)  { demarrerRotation(a, -1); return 1; }
 
 int Deplacement_Arreter(void) {
-    Moteurs_Arreter();
+    Securite_Arreter();
     etatMouvement = INACTIF;
     return 1;
 }
@@ -92,12 +93,21 @@ int Deplacement_DirectionVirage(void) {
 void Deplacement_MettreAJour(void) {
     if (etatMouvement == INACTIF) return;
 
+    // Le veto interrompt une avance en cours plutot que de la laisser tourner
+    // a vitesse nulle jusqu'a son timeout : la machine a etats se libere et la
+    // sequence Blockly peut passer au bloc suivant.
+    if (etatMouvement == AVANCE && sensAvance > 0 && Securite_VetoActif()) {
+        Securite_Arreter();
+        etatMouvement = INACTIF;
+        return;
+    }
+
     if (etatMouvement == AVANCE) {
         long delta     = labs(Moteurs_LireEncodeurGauche() - encodeurDepart);
         float distance = Moteurs_PulsesEnMetres(delta);
         bool timeout   = (millis() - tDebutMouvement) > TIMEOUT_AVANCE_MS;
         if (distance >= distanceCible || timeout) {
-            Moteurs_Arreter();
+            Securite_Arreter();
             etatMouvement = INACTIF;
         }
     }
@@ -115,12 +125,12 @@ void Deplacement_MettreAJour(void) {
         if (!rotationLente && reste < ROT_MARGE_LENTE_DEG) {
             rotationLente = true;
             int lente = VITESSE_ROTATION / 2;
-            Moteurs_DefinirVitesse(signeRotation *  lente,
-                                   signeRotation * -lente);
+            Securite_DefinirVitesse(signeRotation *  lente,
+                                    signeRotation * -lente);
         }
         if (fabs(angleCumule) >= (angleCibleAbs - ROT_MARGE_ARRET_DEG)
             || timeout) {
-            Moteurs_Arreter();
+            Securite_Arreter();
             etatMouvement = INACTIF;
         }
     }

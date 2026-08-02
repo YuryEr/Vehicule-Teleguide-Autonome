@@ -5,6 +5,9 @@ Couche unique de communication entre le MPU (Python/Linux)
 et le MCU (STM32/Zephyr) via Arduino Bridge RPC.
 
 Contrat RPC (Python -> MCU) :
+    Mode de conduite :
+        definir_mode(int)  [0=manuel, 1=autonome]
+        veto_actif() -> int (0/1)
     Pilotage manuel :
         joy_x(float), joy_y(float)
     Deplacements asservis (valeurs toujours positives) :
@@ -65,6 +68,29 @@ def envoyer_roues(gauche, droite):
     droite — vitesse cote droit (0 a 100, positif)
     """
     _appeler("roues", int(gauche), int(droite))
+
+# ======================== Mode de conduite ========================
+
+MODE_MANUEL   = 0
+MODE_AUTONOME = 1
+
+
+def definir_mode(mode):
+    """Informe le MCU du regime de conduite.
+
+    Le veto de securite n'est applique qu'en mode autonome : en manuel le
+    pilote garde le controle complet du vehicule.
+
+    mode — MODE_MANUEL ou MODE_AUTONOME
+    """
+    _appeler("definir_mode", int(mode))
+
+
+def veto_actif():
+    """Retourne True si le MCU refuse actuellement de faire avancer le
+    vehicule a cause d'un obstacle."""
+    return bool(_appeler_avec_retour("veto_actif"))
+
 
 # ======================== Deplacements asservis ========================
 

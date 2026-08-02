@@ -295,7 +295,7 @@ chargerVideo();
 // ================================================================
 // MODE DE CONDUITE
 // ================================================================
-const MODES = ["manuel", "semi-autonome", "autonome"];
+const MODES = ["manuel", "autonome"];
 let indexMode = 0;
 
 function changerMode() {
