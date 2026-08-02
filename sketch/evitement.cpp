@@ -18,6 +18,7 @@ static EtatEvitement etat        = REPOS;
 static int           coteChoisi  = SECTEUR_GAUCHE;
 static int           angleTourne = 0;
 static int           essais      = 0;
+static bool          abandonne   = false;
 
 // ======================== Rotations ========================
 
@@ -46,6 +47,7 @@ void Evitement_Initialiser(void) {
     etat        = REPOS;
     angleTourne = 0;
     essais      = 0;
+    abandonne   = false;
 }
 
 bool Evitement_EnCours(void) { return etat != REPOS; }
@@ -55,8 +57,16 @@ void Evitement_MettreAJour(void) {
 
         case REPOS:
             if (Securite_ObtenirMode() != MODE_AUTONOME) return;
-            if (!Securite_VetoActif())                   return;
-            if (Deplacement_EstActif())                  return;
+
+            // La disparition de l'obstacle rearme une manoeuvre abandonnee.
+            // Sans ce verrou, un obstacle infranchissable relancerait le
+            // contournement sans fin et le vehicule tournerait sur lui-meme.
+            if (!Securite_VetoActif()) {
+                abandonne = false;
+                return;
+            }
+            if (abandonne)              return;
+            if (Deplacement_EstActif()) return;
 
             // Le veto a deja immobilise le vehicule : la manoeuvre part d'un
             // arret franc, condition necessaire a un sondage exploitable.
@@ -85,7 +95,8 @@ void Evitement_MettreAJour(void) {
                     tournerVersCote(OBSTACLE_ECART_SONDAGE_DEG);
                     return;
                 }
-                terminer();   // obstacle infranchissable : le veto maintient l'arret
+                abandonne = true;   // obstacle infranchissable : le veto maintient l'arret
+                terminer();
                 return;
             }
 

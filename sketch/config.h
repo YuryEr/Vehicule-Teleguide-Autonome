@@ -108,7 +108,6 @@
 #define OBSTACLE_ECART_SONDAGE_DEG  45    // ecart des secteurs lateraux (deg)
 #define OBSTACLE_SENS_SERVO         1     // -1 si gauche et droite sont inverses
 #define OBSTACLE_STABILISATION_MS   40    // attente apres arrivee, avant la mesure
-#define OBSTACLE_RELANCE_MIN_MS     2000  // intervalle minimal entre deux sondages
 
 // Evitement d'obstacle (contournement lateral)
 #define EVITEMENT_DISTANCE_M        0.30  // longement le long de l'obstacle (m)

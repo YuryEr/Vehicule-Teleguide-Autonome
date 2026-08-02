@@ -123,19 +123,4 @@ int Obstacle_DistanceSecteur(int secteur);
  */
 int Obstacle_CoteLePlusDegage(void);
 
-/*
- * Obstacle_DefinirSondageAuto
- *
- * ACTIVE OU DESACTIVE LE DECLENCHEMENT AUTOMATIQUE DU SONDAGE AU FRONT
- * MONTANT DE LA DETECTION. A DESACTIVER TANT QUE LE VEHICULE ROULE :
- * LES TROIS MESURES DECRIRAIENT ALORS TROIS POSITIONS DIFFERENTES.
- *
- * PARAMETRE :
- * actif — true POUR AUTORISER LE DECLENCHEMENT AUTOMATIQUE
- *
- * RETOUR :
- * AUCUN
- */
-void Obstacle_DefinirSondageAuto(bool actif);
-
 #endif
