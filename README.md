@@ -346,20 +346,42 @@ pourquoi `roues` prend deux vitesses positives plutot qu'un differentiel signe).
 
 ## Suivi de ligne autonome
 
-Le module `python/navigation.py` implemente un suivi proportionnel :
+Le module `python/navigation.py` implemente un correcteur **proportionnel-derive** :
 la vision fournit l'ecart lateral (pixels) entre le centre de la ligne et le centre
 de l'image, et on ralentit la roue du cote vers lequel tourner. Les deux roues avancent
 toujours (valeurs positives, contrainte du Bridge).
 
-Parametres a ajuster sur le terrain (`navigation.py`) :
+Le terme derive est indispensable : la vision tourne a 10 Hz et le Bridge ajoute sa
+latence. Avec un correcteur purement proportionnel, la correction arrive alors que
+l'ecart a deja change de signe — le vehicule oscille d'un bord a l'autre et finit par
+perdre la ligne.
 
 | Constante | Role |
 |---|---|
 | `VITESSE_BASE` | Vitesse des deux roues en ligne droite (0-100) |
-| `KP_LATERAL` | Gain : pixels d'ecart -> unites de vitesse |
+| `KP_LATERAL` | Gain proportionnel : pixels d'ecart -> unites de vitesse |
+| `KD_LATERAL` | Gain derive : s'oppose aux variations de l'ecart, amortit le depassement |
+| `ZONE_MORTE_PX` | Ecart en deca duquel la ligne est jugee centree |
 | `CORRECTION_MAX` | Correction maximale (garde les deux roues en avant) |
 | `SENS` | **-1 actuellement** (camera inversee). A remettre a **1** quand la coque 3D sera montee. |
 | `MISS_MAX` | Cycles sans ligne avant l'arret |
+
+### Procedure de reglage
+
+Un seul parametre a la fois, dans cet ordre — sinon il est impossible de savoir
+lequel agit.
+
+1. **`KD_LATERAL = 0`**, puis diviser `KP_LATERAL` par deux jusqu'a disparition de
+   l'oscillation. Le vehicule sera mou en virage : c'est attendu. Noter la valeur.
+2. **Remonter `KD_LATERAL`** par paliers jusqu'a retrouver du mordant en virage sans
+   redepasser. Trop haut, il rend le vehicule nerveux sur le bruit du centroide.
+3. **`ZONE_MORTE_PX`** : augmenter jusqu'a ce que le vehicule cesse de fretiller en
+   ligne droite. Trop haute, il louvoie lentement autour de la ligne.
+4. **`VITESSE_BASE`** en dernier. Toute augmentation de vitesse deteriore un reglage
+   trouve plus lentement, et impose de reprendre a l'etape 1.
+
+`KP_LATERAL` et `KD_LATERAL` dependent de la **resolution de la camera**, l'ecart etant
+exprime en pixels bruts. Un changement de resolution invalide tout le reglage.
 
 ## References
 
