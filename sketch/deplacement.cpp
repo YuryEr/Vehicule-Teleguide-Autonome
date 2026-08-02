@@ -31,14 +31,14 @@ static volatile float joystickX = 0.0f;
 void Deplacement_JoystickX(float x) { joystickX = x; }
 
 void Deplacement_JoystickY(float y) {
-    if (etatMouvement != INACTIF) return;
+    if (etatMouvement != INACTIF || Securite_ManoeuvreEnCours()) return;
     int gauche = (int)((y - joystickX) * VITESSE_JOYSTICK);
     int droite = (int)((y + joystickX) * VITESSE_JOYSTICK);
     Securite_DefinirVitesse(gauche, droite);
 }
 
 void Deplacement_Roues(int gauche, int droite) {
-    if (etatMouvement != INACTIF) return;
+    if (etatMouvement != INACTIF || Securite_ManoeuvreEnCours()) return;
     Securite_DefinirVitesse(gauche, droite);
 }
 

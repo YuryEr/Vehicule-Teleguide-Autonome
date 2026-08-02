@@ -2,7 +2,8 @@
 #include "moteurs.h"
 #include "obstacle.h"
 
-static int mode = MODE_MANUEL;
+static int  mode             = MODE_MANUEL;
+static bool manoeuvreEnCours = false;
 
 // Une commande est une avance si les deux cotes poussent vers l'avant.
 // Une rotation (signes opposes) et une marche arriere restent autorisees :
@@ -12,7 +13,8 @@ static bool estUneAvance(int gauche, int droite) {
 }
 
 void Securite_Initialiser(void) {
-    mode = MODE_MANUEL;
+    mode             = MODE_MANUEL;
+    manoeuvreEnCours = false;
 }
 
 void Securite_DefinirMode(int nouveauMode) {
@@ -38,3 +40,6 @@ void Securite_DefinirVitesse(int gauche, int droite) {
 void Securite_Arreter(void) {
     Moteurs_Arreter();
 }
+
+void Securite_DefinirManoeuvre(bool actif) { manoeuvreEnCours = actif; }
+bool Securite_ManoeuvreEnCours(void)       { return manoeuvreEnCours; }

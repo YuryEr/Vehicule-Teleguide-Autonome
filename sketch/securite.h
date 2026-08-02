@@ -92,4 +92,32 @@ void Securite_Arreter(void);
  */
 bool Securite_VetoActif(void);
 
+/*
+ * Securite_DefinirManoeuvre
+ *
+ * SIGNALE QU'UNE MANOEUVRE AUTOMATIQUE OCCUPE LE VEHICULE. TANT QU'ELLE
+ * EST EN COURS, LES CONSIGNES EXTERIEURES — JOYSTICK ET SUIVI DE LIGNE —
+ * SONT IGNOREES POUR NE PAS LA PERTURBER ENTRE DEUX DE SES ETAPES.
+ *
+ * PARAMETRE :
+ * actif — true AU DEBUT DE LA MANOEUVRE, false A LA FIN
+ *
+ * RETOUR :
+ * AUCUN
+ */
+void Securite_DefinirManoeuvre(bool actif);
+
+/*
+ * Securite_ManoeuvreEnCours
+ *
+ * INDIQUE SI UNE MANOEUVRE AUTOMATIQUE EST EN COURS.
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * true SI UNE MANOEUVRE OCCUPE LE VEHICULE, false SINON
+ */
+bool Securite_ManoeuvreEnCours(void);
+
 #endif

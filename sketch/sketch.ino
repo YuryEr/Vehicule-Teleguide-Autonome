@@ -13,6 +13,7 @@
 #include "servo_lidar.h"
 #include "obstacle.h"
 #include "securite.h"
+#include "evitement.h"
 #include "test_capteurs.h"
 
 
@@ -93,6 +94,7 @@ void setup() {
     ServoLidar_Initialiser();
     Obstacle_Initialiser();
     Securite_Initialiser();
+    Evitement_Initialiser();
 
     Securite_Arreter();
 }
@@ -122,6 +124,7 @@ void loop() {
     Lidar_MettreAJour();
     ServoLidar_MettreAJour();
     Obstacle_MettreAJour();
+    Evitement_MettreAJour();
     tracerDemarrage();
     TestCapteurs_MettreAJour();
 }

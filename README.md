@@ -32,6 +32,7 @@ Vehicule teleguide autonome — PFE ELE795, Ecole de technologie superieure, ete
       servo_lidar.h/cpp    SG90, PWM logiciel (support du LiDAR)
       obstacle.h/cpp       Fusion ultrason + LiDAR, sondage par secteurs
       securite.h/cpp       Veto sur les commandes moteur (mode autonome)
+      evitement.h/cpp      Contournement lateral : sondage, rotation, longement
       test_capteurs.h/cpp  Releve serie periodique (bascule TEST_CAPTEURS_ACTIF)
 
     python/              MPU (Qualcomm Linux) — serveur web, vision, Bridge

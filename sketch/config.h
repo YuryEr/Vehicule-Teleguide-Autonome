@@ -110,6 +110,10 @@
 #define OBSTACLE_STABILISATION_MS   40    // attente apres arrivee, avant la mesure
 #define OBSTACLE_RELANCE_MIN_MS     2000  // intervalle minimal entre deux sondages
 
+// Evitement d'obstacle (contournement lateral)
+#define EVITEMENT_DISTANCE_M        0.30  // longement le long de l'obstacle (m)
+#define EVITEMENT_ESSAIS_MAX        3     // rotations avant d'abandonner
+
 // Recul de chaque capteur par rapport au pare-choc avant (cm). Les mesures
 // sont ramenees a cette reference commune : sans cela, la fusion comparerait
 // deux distances prises depuis deux origines differentes. A mesurer sur la
