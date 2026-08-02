@@ -3,70 +3,117 @@
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ILI9341.h>
+#include <qrcode.h>
+
+/*
+ * Generation des codes QR : librairie QRCode de Richard Moore (ricmoo),
+ * licence MIT — https://github.com/ricmoo/QRCode
+ * Son auteur cite la librairie C++ de Project Nayuki comme determinante
+ * dans son developpement, licence MIT
+ * https://www.nayuki.io/page/qr-code-generator-library
+ *
+ * Symbologie : ISO/IEC 18004:2015, Information technology — Automatic
+ * identification and data capture techniques — QR Code bar code
+ * symbology specification.
+ *
+ * Format d'adhesion WiFi "WIFI:T:...;S:...;P:...;;" : schema de facto
+ * defini par le projet ZXing, reconnu nativement par iOS 11 et
+ * Android 10 et versions ulterieures.
+ * https://github.com/zxing/zxing/wiki/Barcode-Contents
+ */
 
 // ======================== Ecran (SPI materiel) ========================
 
 static Adafruit_ILI9341 ecran =
     Adafruit_ILI9341(PIN_TFT_CS, PIN_TFT_DC, PIN_TFT_RST);
 
-// Dimensions en orientation paysage
-#define ECRAN_LARGEUR   320
-#define ECRAN_HAUTEUR   240
-
 // Couleurs (RGB565)
 #define COULEUR_FOND    ILI9341_NAVY
-#define COULEUR_VISAGE  ILI9341_YELLOW
-#define COULEUR_TRAIT   ILI9341_BLACK
+#define COULEUR_TITRE   ILI9341_WHITE
+#define COULEUR_TEXTE   ILI9341_YELLOW
 
-// Geometrie du visage
-#define VISAGE_CX       160
-#define VISAGE_CY       120
-#define VISAGE_RAYON     90
-#define OEIL_DECAL_X     32
-#define OEIL_DECAL_Y     28
-#define OEIL_RAYON       14
-#define SOURIRE_LARGEUR  50
+// Le symbole occupe la moitie gauche, les informations en clair la droite.
+#define QR_CENTRE_X     100
+#define QR_CENTRE_Y     130
+#define TEXTE_X         205
 
-// ======================== Primitive interne ========================
+// ======================== Primitives internes ========================
 
-// Courbe epaisse par echantillonnage d'une Bezier quadratique
-// (utilisee pour le sourire). Reference : courbe de Bezier, formule
-// B(t) = (1-t)^2 P0 + 2(1-t)t P1 + t^2 P2.
-static void traceCourbe(int x0, int y0, int xc, int yc,
-                        int x1, int y1, int epaisseur, uint16_t couleur) {
-    const int nbPas = 22;
-    for (int i = 0; i <= nbPas; i++) {
-        float t = (float)i / nbPas;
-        float u = 1.0f - t;
-        int x = (int)(u * u * x0 + 2 * u * t * xc + t * t * x1);
-        int y = (int)(u * u * y0 + 2 * u * t * yc + t * t * y1);
-        ecran.fillCircle(x, y, epaisseur, couleur);
+// Trace un QR code centre sur (centreX, centreY). La zone de silence est
+// peinte en blanc autour du symbole : sans elle, les lecteurs echouent a
+// isoler le motif du fond.
+static void dessinerQr(const char *texte, int centreX, int centreY) {
+    QRCode qr;
+    uint8_t donnees[qrcode_getBufferSize(QR_VERSION)];
+    qrcode_initText(&qr, donnees, QR_VERSION, ECC_LOW, texte);
+
+    int cote     = qr.size * QR_TAILLE_MODULE;
+    int silence  = QR_ZONE_SILENCE * QR_TAILLE_MODULE;
+    int origineX = centreX - cote / 2;
+    int origineY = centreY - cote / 2;
+
+    ecran.fillRect(origineX - silence, origineY - silence,
+                   cote + 2 * silence, cote + 2 * silence, ILI9341_WHITE);
+
+    for (uint8_t y = 0; y < qr.size; y++) {
+        for (uint8_t x = 0; x < qr.size; x++) {
+            if (!qrcode_getModule(&qr, x, y)) continue;
+            ecran.fillRect(origineX + x * QR_TAILLE_MODULE,
+                           origineY + y * QR_TAILLE_MODULE,
+                           QR_TAILLE_MODULE, QR_TAILLE_MODULE,
+                           ILI9341_BLACK);
+        }
     }
+}
+
+static void ecrireTitre(const char *titre) {
+    ecran.fillScreen(COULEUR_FOND);
+    ecran.setTextColor(COULEUR_TITRE);
+    ecran.setTextSize(2);
+    ecran.setCursor(10, 10);
+    ecran.print(titre);
+}
+
+static void ecrireLigne(int y, const char *etiquette, const char *valeur) {
+    ecran.setTextColor(COULEUR_TEXTE);
+    ecran.setTextSize(1);
+    ecran.setCursor(TEXTE_X, y);
+    ecran.print(etiquette);
+    ecran.setCursor(TEXTE_X, y + 12);
+    ecran.print(valeur);
 }
 
 // ======================== API ========================
 
 void Ecran_Initialiser(void) {
     ecran.begin();
-    ecran.setRotation(3);          // paysage 320x240
-    Ecran_AfficherSourire();
+    ecran.setRotation(1);          // paysage 320x240
+    Ecran_AfficherAttente();
 }
 
-void Ecran_AfficherSourire(void) {
-    ecran.fillScreen(COULEUR_FOND);
+void Ecran_AfficherAttente(void) {
+    ecrireTitre("TankETS");
+    ecran.setTextColor(COULEUR_TEXTE);
+    ecran.setTextSize(1);
+    ecran.setCursor(10, 60);
+    ecran.print("Demarrage du serveur...");
+}
 
-    // Visage
-    ecran.fillCircle(VISAGE_CX, VISAGE_CY, VISAGE_RAYON, COULEUR_VISAGE);
+void Ecran_AfficherQrReseau(const char *ssid, const char *mdp) {
+    char charge[96];
+    snprintf(charge, sizeof(charge), "WIFI:T:WPA;S:%s;P:%s;;", ssid, mdp);
 
-    // Yeux
-    ecran.fillCircle(VISAGE_CX - OEIL_DECAL_X, VISAGE_CY - OEIL_DECAL_Y,
-                     OEIL_RAYON, COULEUR_TRAIT);
-    ecran.fillCircle(VISAGE_CX + OEIL_DECAL_X, VISAGE_CY - OEIL_DECAL_Y,
-                     OEIL_RAYON, COULEUR_TRAIT);
+    ecrireTitre("1. Reseau");
+    dessinerQr(charge, QR_CENTRE_X, QR_CENTRE_Y);
+    ecrireLigne(70,  "Reseau :",       ssid);
+    ecrireLigne(110, "Mot de passe :", mdp);
+}
 
-    // Sourire (courbe vers le bas)
-    traceCourbe(VISAGE_CX - SOURIRE_LARGEUR, VISAGE_CY + 20,
-                VISAGE_CX,                   VISAGE_CY + 60,
-                VISAGE_CX + SOURIRE_LARGEUR, VISAGE_CY + 20,
-                4, COULEUR_TRAIT);
+void Ecran_AfficherQrControle(const char *ip) {
+    char charge[64];
+    snprintf(charge, sizeof(charge), "http://%s:7000", ip);
+
+    ecrireTitre("2. Controle");
+    dessinerQr(charge, QR_CENTRE_X, QR_CENTRE_Y);
+    ecrireLigne(70, "Adresse :", charge);
 }

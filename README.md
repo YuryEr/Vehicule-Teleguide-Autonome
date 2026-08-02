@@ -26,7 +26,7 @@ Vehicule teleguide autonome — PFE ELE795, Ecole de technologie superieure, ete
       imu.h/cpp            MPU-6050, calibration gyroscope
       deplacement.h/cpp    Machine a etats, joystick, asservissement encodeurs + gyro
       leds.h/cpp           Bandeaux WS2812B : barre, feux, clignotants
-      ecran.h/cpp          Ecran ILI9341, affichage
+      ecran.h/cpp          Ecran ILI9341 : codes QR de connexion, infos reseau
       ultrason.h/cpp       HC-SR04, mesure d'echo bornee sur micros()
       lidar.h/cpp          TF-Luna, distance par I2C
       servo_lidar.h/cpp    SG90, PWM logiciel (support du LiDAR)
@@ -182,6 +182,7 @@ profiles:
       - Adafruit GFX Library (1.12.6)
       - Adafruit ILI9341 (1.6.3)
       - Adafruit BusIO (1.17.4)
+      - QRCode (0.0.1)
 default_profile: default
 ```
 
@@ -190,6 +191,7 @@ default_profile: default
 | Adafruit NeoPixel | **1.15.5** | Les versions anterieures (ex. 1.12.0) **compilent** mais leur timing bit-bang 800 kHz ne produit **aucun signal** sur STM32U585/Zephyr. Symptome : LEDs completement eteintes. |
 | Adafruit BusIO | **1.17.4** | Contient le guard `#elif defined(__MBED__) \|\| defined(__ZEPHYR__)` qui desactive `BUSIO_USE_FAST_PINIO`. Les versions < 1.15 **ne compilent pas** (erreur `portOutputRegister` / `digitalPinToPort`). |
 | Adafruit GFX / ILI9341 | 1.12.6 / 1.6.3 | Dependances de l'ecran, dernieres versions stables. |
+| QRCode | 0.0.1 | Generation des codes QR de connexion. C pur, sans acces registre ni allocation dynamique — le tampon est fourni par l'appelant, ce qui la rend compatible avec le core Zephyr. |
 
 Les autres librairies visibles a la compilation (`Arduino_RouterBridge`, `Arduino_RPClite`,
 `MsgPack`, `DebugLog`, `ArxTypeTraits`, `ArxContainer`, `Wire`) sont des dependances
@@ -366,5 +368,12 @@ Parametres a ajuster sur le terrain (`navigation.py`) :
 - Canny Edge Detection — Canny, J. (1986), IEEE Trans. PAMI
 - Hough Transform probabiliste — Matas et al. (2000), CVIU
 - Adaptive Thresholding — OpenCV documentation
-- Courbe de Bezier quadratique — tracee par echantillonnage (`ecran.cpp`)
+- QRCode (Arduino) — Richard Moore (ricmoo), licence MIT
+  https://github.com/ricmoo/QRCode
+- QR-Code-generator — Project Nayuki, licence MIT. Cite par l'auteur de
+  QRCode comme determinant dans le developpement de sa librairie
+  https://www.nayuki.io/page/qr-code-generator-library
+- ISO/IEC 18004:2015 — QR Code bar code symbology specification
+- Format d'adhesion WiFi `WIFI:` — projet ZXing, page Barcode Contents
+  https://github.com/zxing/zxing/wiki/Barcode-Contents
 - TF-Luna Product Manual — Benewake (`docs/Datasheet/`)

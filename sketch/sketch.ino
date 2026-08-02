@@ -89,6 +89,9 @@ void setup() {
     Imu_Calibrer();
     Leds_Initialiser();
     Ecran_Initialiser();
+    // Essai en dur : valide la librairie QR et la lisibilite du symbole
+    // avant que le MPU ne fournisse les vrais parametres du reseau.
+    Ecran_AfficherQrReseau("TankETS", "tank1234");
     Ultrason_Initialiser();
     Lidar_Initialiser();
     ServoLidar_Initialiser();
