@@ -7,7 +7,7 @@ Responsabilites :
     - Servir l'interface web statique (assets/)
     - Pilotage manuel via joystick WebSocket
     - Execution des sequences Blockly (mode programme)
-    - Controle des LEDs
+    - Controle des LEDs (barre haute + feux avant/arriere)
     - Gestion des modes de conduite
 
 Sources :
@@ -46,16 +46,14 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet",
 
 # ======================== Etat global ========================
 
-NOMS_MODES_LED = ["eteint", "gyrophare", "clignotant", "phares"]
+NOMS_MODES_BANDEAUX = ["eteint", "position", "gyrophare"]
 
 etat = {
     "mode":          "manuel",
     "camera_active": True,
     "direction":     {"x": 0.0, "y": 0.0},
-    "mode_led1":     0,
-    "mode_led2":     0,
-    "led1_on":       False,
-    "led2_on":       False,
+    "mode_bandeaux": 0,
+    "phares_on":     False,
 }
 
 sequence_en_cours = False
@@ -216,51 +214,27 @@ def on_toggle_camera(data):
 
 # ======================== Socket — LEDs ========================
 
-@socketio.on('onoff_led1')
-def on_onoff_led1(data):
-    _gerer_onoff_led(1, data.get("active", False))
+@socketio.on('mode_bandeaux')
+def on_mode_bandeaux(data):
+    """Change le mode de la barre haute des deux bandeaux.
+
+    mode — 0=eteint, 1=feux de position, 2=gyrophare
+    """
+    mode = int(data.get("mode", 0))
+    etat["mode_bandeaux"] = mode
+    comm_bridge.definir_mode_bandeaux(mode)
+    print(f"[web] Bandeaux -> {NOMS_MODES_BANDEAUX[mode]}")
+    socketio.emit("etat_bandeaux", {"mode": mode})
 
 
-@socketio.on('onoff_led2')
-def on_onoff_led2(data):
-    _gerer_onoff_led(2, data.get("active", False))
-
-
-@socketio.on('mode_led1')
-def on_mode_led1(data):
-    _gerer_mode_led(1, data.get("mode", 1))
-
-
-@socketio.on('mode_led2')
-def on_mode_led2(data):
-    _gerer_mode_led(2, data.get("mode", 1))
-
-
-def _gerer_onoff_led(bandeau, actif):
-    etat[f"led{bandeau}_on"] = actif
-    if actif:
-        mode = etat[f"mode_led{bandeau}"] or 1
-        etat[f"mode_led{bandeau}"] = mode
-        comm_bridge.definir_mode_led(bandeau, mode)
-        print(f"[web] LED {bandeau} -> ON ({NOMS_MODES_LED[mode]})")
-    else:
-        comm_bridge.definir_mode_led(bandeau, 0)
-        print(f"[web] LED {bandeau} -> OFF")
-    socketio.emit(f"etat_led{bandeau}", {
-        "active": actif,
-        "mode":   etat[f"mode_led{bandeau}"]
-    })
-
-
-def _gerer_mode_led(bandeau, mode):
-    etat[f"mode_led{bandeau}"] = mode
-    if etat[f"led{bandeau}_on"]:
-        comm_bridge.definir_mode_led(bandeau, mode)
-    print(f"[web] LED {bandeau} mode -> {NOMS_MODES_LED[mode]}")
-    socketio.emit(f"etat_led{bandeau}", {
-        "active": etat[f"led{bandeau}_on"],
-        "mode":   mode
-    })
+@socketio.on('toggle_phares')
+def on_toggle_phares(data):
+    """Allume ou eteint les feux avant et arriere."""
+    actif = data.get("active", False)
+    etat["phares_on"] = actif
+    comm_bridge.definir_phares(actif)
+    print(f"[web] Phares -> {'ON' if actif else 'OFF'}")
+    socketio.emit("etat_phares", {"active": actif})
 
 
 # ======================== Socket — Sequences Blockly ========================
@@ -348,23 +322,17 @@ def _executer_sequence(sequence):
                         float(commande.get("valeur", 1))):
                     interrompue = True
 
-            elif cmd == "led":
-                bandeau = int(commande.get("bandeau", 1))
-                mode    = int(commande.get("mode", 1))
-                etat[f"mode_led{bandeau}"] = mode
-                etat[f"led{bandeau}_on"]   = True
-                comm_bridge.definir_mode_led(bandeau, mode)
-                socketio.emit(f"etat_led{bandeau}",
-                              {"active": True, "mode": mode})
+            elif cmd == "bandeaux":
+                mode = int(commande.get("mode", 0))
+                etat["mode_bandeaux"] = mode
+                comm_bridge.definir_mode_bandeaux(mode)
+                socketio.emit("etat_bandeaux", {"mode": mode})
 
-            elif cmd == "led_off":
-                bandeau = int(commande.get("bandeau", 1))
-                etat[f"led{bandeau}_on"] = False
-                comm_bridge.definir_mode_led(bandeau, 0)
-                socketio.emit(f"etat_led{bandeau}", {
-                    "active": False,
-                    "mode":   etat[f"mode_led{bandeau}"]
-                })
+            elif cmd == "phares":
+                actif = bool(commande.get("actif", True))
+                etat["phares_on"] = actif
+                comm_bridge.definir_phares(actif)
+                socketio.emit("etat_phares", {"active": actif})
 
             if interrompue:
                 break
@@ -421,9 +389,11 @@ def _description_commande(commande):
         "tourner_gauche": f"Tourner a gauche de {v} deg",
         "tourner_droite": f"Tourner a droite de {v} deg",
         "attendre":       f"Attendre {v} s",
-        "led":            f"Allumer bandeau {commande.get('bandeau')} "
-                          f"({NOMS_MODES_LED[commande.get('mode', 1)]})",
-        "led_off":        f"Eteindre bandeau {commande.get('bandeau')}",
+        "bandeaux":       f"Bandeaux : "
+                          f"{NOMS_MODES_BANDEAUX[commande.get('mode', 0)]}",
+        "phares":         ("Allumer les phares"
+                           if commande.get("actif", True)
+                           else "Eteindre les phares"),
     }
     return descriptions.get(cmd, cmd)
 

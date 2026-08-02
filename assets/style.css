@@ -429,3 +429,24 @@ body {
     body { padding: 12px; }
     .colonne-gauche { flex-direction: column; }
 }
+
+/* Detection vision */
+#panneau-detection {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.indicateur-detection {
+    padding: 0.3rem 0.8rem;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.feu-aucune   { background: #333; color: #999; }
+.feu-rouge    { background: #b91c1c; color: #fff; }
+.feu-jaune    { background: #ca8a04; color: #fff; }
+.feu-vert     { background: #16a34a; color: #fff; }
+.lignes-ok    { background: #1d4ed8; color: #fff; }
+.lignes-non   { background: #333; color: #999; }

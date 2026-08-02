@@ -38,12 +38,34 @@
 #define TIMEOUT_ROTATION_MS   8000
 
 // Bandeaux LED adressables (WS2812B, protocole 800 kHz)
-#define PIN_BANDEAU_1          6
-#define PIN_BANDEAU_2          7
-#define NB_LEDS_PAR_BANDEAU    5
-#define LUMINOSITE_LEDS        60      // 0-255
-#define PERIODE_GYROPHARE_MS   250
+// Chaque bandeau porte 7 LEDs en serie sur une seule ligne de donnees :
+// les pixels 0 a 4 forment la barre haute, les pixels 5 et 6 occupent la
+// position des feux avant et arriere.
+#define PIN_BANDEAU_AVANT      6
+#define PIN_BANDEAU_ARRIERE    7
+#define NB_LEDS_PAR_BANDEAU    7
+
+#define ZONE_BARRE_DEBUT       0
+#define ZONE_BARRE_FIN         4
+#define ZONE_PHARES_DEBUT      5
+#define ZONE_PHARES_FIN        6
+
+// Cote du vehicule occupe par chaque pixel de la zone des feux.
+#define PIXEL_COTE_DROIT       5
+#define PIXEL_COTE_GAUCHE      6
+
+// Gain global du bandeau. Les deux zones partagent la meme ligne de
+// donnees : le contraste entre la barre et les feux se fait par les
+// valeurs RVB, pas par des luminosites separees.
+#define LUMINOSITE_BANDEAU     255
+#define PERIODE_GYROPHARE_MS   150
 #define PERIODE_CLIGNOTANT_MS  400
+
+// Signalisation de virage. Vocabulaire partage entre le module de
+// deplacement, qui produit la direction, et celui des LEDs, qui l'affiche.
+#define VIRAGE_AUCUN           0
+#define VIRAGE_GAUCHE          1
+#define VIRAGE_DROITE          2
 
 // Ecran TFT ILI9341 (SPI materiel)
 #define PIN_TFT_CS   10

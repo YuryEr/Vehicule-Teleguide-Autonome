@@ -17,8 +17,8 @@
 
 // ======================== LEDs ========================
 
-static void rpc_mode_led1(int mode) { Leds_DefinirMode(1, mode); }
-static void rpc_mode_led2(int mode) { Leds_DefinirMode(2, mode); }
+static void rpc_mode_bandeaux(int mode) { Leds_DefinirModeBandeaux(mode); }
+static void rpc_mode_phares(int actif)  { Leds_DefinirPhares(actif); }
 
 // ======================== Capteurs de distance ========================
 
@@ -61,8 +61,8 @@ void setup() {
     Bridge.provide_safe("tourner_droite_deg",  Deplacement_TournerDroite);
     Bridge.provide_safe("arreter_mouvement",   Deplacement_Arreter);
     Bridge.provide_safe("mouvement_actif",     Deplacement_EstActif);
-    Bridge.provide_safe("mode_led1",           rpc_mode_led1);
-    Bridge.provide_safe("mode_led2",           rpc_mode_led2);
+    Bridge.provide_safe("mode_bandeaux",       rpc_mode_bandeaux);
+    Bridge.provide_safe("mode_phares",         rpc_mode_phares);
     Bridge.provide_safe("lire_ultrason_cm",    rpc_lire_ultrason_cm);
     Bridge.provide_safe("lire_lidar_cm",       rpc_lire_lidar_cm);
     Bridge.provide_safe("servo_angle",         rpc_servo_angle);
@@ -104,6 +104,10 @@ static void tracerDemarrage(void) {
 void loop() {
     Bridge.update();
     Deplacement_MettreAJour();
+
+    // Les LEDs affichent, elles n'interrogent pas le deplacement : la
+    // direction du clignotant leur est fournie ici.
+    Leds_DefinirVirage(Deplacement_DirectionVirage());
     Leds_MettreAJour();
     Ultrason_MettreAJour();
     Lidar_MettreAJour();
