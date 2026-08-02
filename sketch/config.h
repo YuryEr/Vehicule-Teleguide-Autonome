@@ -74,7 +74,7 @@
 
 // Codes QR affiches a l'ecran
 #define QR_VERSION           3     // 29x29 modules, 53 octets en correction basse
-#define QR_TAILLE_MODULE     5     // cote d'un module, en pixels
+#define QR_TAILLE_MODULE     4     // cote d'un module, en pixels
 #define QR_ZONE_SILENCE      4     // marge blanche en modules, exigee par la norme
 
 // Capteur ultrason HC-SR04 (ECHO relie en direct, sans pont diviseur)

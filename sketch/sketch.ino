@@ -91,7 +91,7 @@ void setup() {
     Ecran_Initialiser();
     // Essai en dur : valide la librairie QR et la lisibilite du symbole
     // avant que le MPU ne fournisse les vrais parametres du reseau.
-    Ecran_AfficherQrReseau("TankETS", "tank1234");
+    Ecran_AfficherConnexion("TankETS", "tank1234", "192.168.137.114");
     Ultrason_Initialiser();
     Lidar_Initialiser();
     ServoLidar_Initialiser();

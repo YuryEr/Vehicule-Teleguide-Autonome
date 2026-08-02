@@ -32,32 +32,21 @@ void Ecran_Initialiser(void);
 void Ecran_AfficherAttente(void);
 
 /*
- * Ecran_AfficherQrReseau
+ * Ecran_AfficherConnexion
  *
- * AFFICHE LE CODE QR D'ADHESION AU RESEAU WIFI, ACCOMPAGNE DU NOM DU
- * RESEAU ET DU MOT DE PASSE EN CLAIR POUR UNE SAISIE MANUELLE.
+ * AFFICHE LA PAGE DE CONNEXION : LE CODE QR D'ADHESION AU RESEAU ET
+ * CELUI QUI OUVRE LA PAGE DE CONTROLE, COTE A COTE, AVEC LES MEMES
+ * INFORMATIONS EN CLAIR POUR UNE SAISIE MANUELLE.
  *
  * PARAMETRES :
  * ssid — NOM DU RESEAU
  * mdp  — MOT DE PASSE DU RESEAU
+ * ip   — ADRESSE IP DU SERVEUR SUR CE RESEAU
  *
  * RETOUR :
  * AUCUN
  */
-void Ecran_AfficherQrReseau(const char *ssid, const char *mdp);
-
-/*
- * Ecran_AfficherQrControle
- *
- * AFFICHE LE CODE QR OUVRANT LA PAGE DE CONTROLE, ACCOMPAGNE DE
- * L'ADRESSE COMPLETE EN CLAIR.
- *
- * PARAMETRE :
- * ip — ADRESSE IP DU SERVEUR SUR LE RESEAU
- *
- * RETOUR :
- * AUCUN
- */
-void Ecran_AfficherQrControle(const char *ip);
+void Ecran_AfficherConnexion(const char *ssid, const char *mdp,
+                              const char *ip);
 
 #endif
