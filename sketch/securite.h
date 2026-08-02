@@ -120,4 +120,33 @@ void Securite_DefinirManoeuvre(bool actif);
  */
 bool Securite_ManoeuvreEnCours(void);
 
+/*
+ * Securite_ObstacleBloquant
+ *
+ * INDIQUE SI UN OBSTACLE INTERDIT L'AVANCE. C'EST LA SEULE CAUSE QUI
+ * DECLENCHE UNE MANOEUVRE DE CONTOURNEMENT.
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * true SI UN OBSTACLE BLOQUE LE VEHICULE, false SINON
+ */
+bool Securite_ObstacleBloquant(void);
+
+/*
+ * Securite_FeuBloquant
+ *
+ * INDIQUE SI UN FEU DE SIGNALISATION IMPOSE L'ARRET. LE ROUGE ET LE JAUNE
+ * ARRETENT, LE VERT ET L'ABSENCE DE FEU LAISSENT PASSER. AUCUNE MANOEUVRE
+ * N'EST DECLENCHEE : ON ATTEND QUE LE FEU CHANGE.
+ *
+ * PARAMETRE :
+ * AUCUN
+ *
+ * RETOUR :
+ * true SI UN FEU IMPOSE L'ARRET, false SINON
+ */
+bool Securite_FeuBloquant(void);
+
 #endif

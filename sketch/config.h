@@ -114,6 +114,9 @@
 #define OBSTACLE_SENS_SERVO         1     // -1 si gauche et droite sont inverses
 #define OBSTACLE_STABILISATION_MS   40    // attente apres arrivee, avant la mesure
 
+// Feux de signalisation (donnees fournies par la vision du MPU)
+#define FEU_AGE_MAX_MS              3000  // au dela, la detection est perimee
+
 // Evitement d'obstacle (contournement lateral)
 #define EVITEMENT_DISTANCE_M        0.30  // longement le long de l'obstacle (m)
 #define EVITEMENT_ESSAIS_MAX        3     // rotations avant d'abandonner

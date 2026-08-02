@@ -327,6 +327,7 @@ Attendu : `0x34` (moteurs), `0x68` (IMU), `0x10` (LiDAR).
 | `mouvement_actif` | aucun, retourne int (0/1) | Polling fin de mouvement |
 | `definir_mode` | int | 0=manuel (aucun veto), 1=autonome (veto sur obstacle) |
 | `veto_actif` | aucun, retourne int (0/1) | Le MCU refuse-t-il d'avancer ? |
+| `cause_arret` | aucun, retourne int | 0=voie libre, 1=obstacle, 2=feu rouge ou jaune |
 | `mode_bandeaux` | int | Barre haute : 0=eteint, 1=position, 2=gyrophare |
 | `mode_phares` | int (0/1) | Feux : blanc a l'avant, rouge a l'arriere |
 | `lire_ultrason_cm` | aucun, retourne int | Distance frontale HC-SR04 (cm), plafond `ULTRASON_DISTANCE_MAX` = voie degagee |

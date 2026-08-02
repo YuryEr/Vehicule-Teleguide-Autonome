@@ -1,6 +1,7 @@
 #include "securite.h"
 #include "moteurs.h"
 #include "obstacle.h"
+#include "comm_bridge.h"
 
 static int  mode             = MODE_MANUEL;
 static bool manoeuvreEnCours = false;
@@ -25,8 +26,24 @@ int Securite_ObtenirMode(void) {
     return mode;
 }
 
-bool Securite_VetoActif(void) {
+// Le rouge et le jaune imposent l'arret. Le jaune est traite comme le rouge :
+// devant un feu sur le point de passer, s'arreter est le comportement attendu.
+static bool feuImposeArret(void) {
+    if (!CommBridge_EstFeuPresent()) return false;
+    int couleur = CommBridge_ObtenirCouleurFeu();
+    return (couleur == COULEUR_ROUGE || couleur == COULEUR_JAUNE);
+}
+
+bool Securite_ObstacleBloquant(void) {
     return (mode == MODE_AUTONOME) && Obstacle_EstDetecte();
+}
+
+bool Securite_FeuBloquant(void) {
+    return (mode == MODE_AUTONOME) && feuImposeArret();
+}
+
+bool Securite_VetoActif(void) {
+    return Securite_ObstacleBloquant() || Securite_FeuBloquant();
 }
 
 void Securite_DefinirVitesse(int gauche, int droite) {

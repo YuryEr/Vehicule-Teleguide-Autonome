@@ -58,10 +58,12 @@ void Evitement_MettreAJour(void) {
         case REPOS:
             if (Securite_ObtenirMode() != MODE_AUTONOME) return;
 
-            // La disparition de l'obstacle rearme une manoeuvre abandonnee.
-            // Sans ce verrou, un obstacle infranchissable relancerait le
+            // Seul un obstacle declenche un contournement : un feu rouge
+            // immobilise aussi le vehicule, mais on ne contourne pas un feu.
+            // La disparition de l'obstacle rearme une manoeuvre abandonnee ;
+            // sans ce verrou, un obstacle infranchissable relancerait le
             // contournement sans fin et le vehicule tournerait sur lui-meme.
-            if (!Securite_VetoActif()) {
+            if (!Securite_ObstacleBloquant()) {
                 abandonne = false;
                 return;
             }

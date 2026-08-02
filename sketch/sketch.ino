@@ -27,6 +27,14 @@ static void rpc_mode_phares(int actif)  { Leds_DefinirPhares(actif); }
 static void rpc_definir_mode(int mode) { Securite_DefinirMode(mode); }
 static int  rpc_veto_actif(void)       { return Securite_VetoActif() ? 1 : 0; }
 
+// 0 : rien, 1 : obstacle, 2 : feu. Le Bridge ne transmettant pas de valeur
+// negative, l'absence de cause est codee par zero.
+static int rpc_cause_arret(void) {
+    if (Securite_ObstacleBloquant()) return 1;
+    if (Securite_FeuBloquant())      return 2;
+    return 0;
+}
+
 // ======================== Capteurs de distance ========================
 
 static int rpc_lire_ultrason_cm(void) { return Ultrason_DistanceCm(); }
@@ -70,6 +78,7 @@ void setup() {
     Bridge.provide_safe("mouvement_actif",     Deplacement_EstActif);
     Bridge.provide_safe("definir_mode",        rpc_definir_mode);
     Bridge.provide_safe("veto_actif",          rpc_veto_actif);
+    Bridge.provide_safe("cause_arret",         rpc_cause_arret);
     Bridge.provide_safe("mode_bandeaux",       rpc_mode_bandeaux);
     Bridge.provide_safe("mode_phares",         rpc_mode_phares);
     Bridge.provide_safe("lire_ultrason_cm",    rpc_lire_ultrason_cm);

@@ -86,6 +86,20 @@ def definir_mode(mode):
     _appeler("definir_mode", int(mode))
 
 
+def lire_cause_arret():
+    """Raison pour laquelle le MCU refuse de faire avancer le vehicule.
+
+    Retourne : "obstacle", "feu", ou None si la voie est libre ou si la
+               lecture Bridge echoue.
+    """
+    valeur = _appeler_avec_retour("cause_arret")
+    if valeur == 1:
+        return "obstacle"
+    if valeur == 2:
+        return "feu"
+    return None
+
+
 def veto_actif():
     """Retourne True si le MCU refuse actuellement de faire avancer le
     vehicule a cause d'un obstacle."""
