@@ -13,7 +13,6 @@
 #include "servo_lidar.h"
 #include "obstacle.h"
 #include "test_capteurs.h"
-#include "test_leds.h"
 
 
 // ======================== LEDs ========================
@@ -107,12 +106,8 @@ void loop() {
     Deplacement_MettreAJour();
 
     // Les LEDs affichent, elles n'interrogent pas le deplacement : la
-    // direction leur est fournie ici. La demonstration de demarrage garde
-    // la main sur les clignotants tant qu'elle se deroule.
-    TestLeds_MettreAJour();
-    if (!TestLeds_EstActif()) {
-        Leds_DefinirVirage(Deplacement_DirectionVirage());
-    }
+    // direction du clignotant leur est fournie ici.
+    Leds_DefinirVirage(Deplacement_DirectionVirage());
     Leds_MettreAJour();
     Ultrason_MettreAJour();
     Lidar_MettreAJour();
