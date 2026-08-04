@@ -94,8 +94,7 @@ void Deplacement_MettreAJour(void) {
     if (etatMouvement == INACTIF) return;
 
     // Le veto interrompt une avance en cours plutot que de la laisser tourner
-    // a vitesse nulle jusqu'a son timeout : la machine a etats se libere et la
-    // sequence Blockly peut passer au bloc suivant.
+    // a vitesse nulle jusqu'a son timeout.
     if (etatMouvement == AVANCE && sensAvance > 0 && Securite_VetoActif()) {
         Securite_Arreter();
         etatMouvement = INACTIF;
@@ -103,6 +102,11 @@ void Deplacement_MettreAJour(void) {
     }
 
     if (etatMouvement == AVANCE) {
+        // Re-emission de la commande moteur : une ecriture I2C ratee est
+        // rattrapee a l'iteration suivante -> plus d'avance "morte".
+        Securite_DefinirVitesse(sensAvance * VITESSE_DEPLACEMENT,
+                                sensAvance * VITESSE_DEPLACEMENT);
+
         long delta     = labs(Moteurs_LireEncodeurGauche() - encodeurDepart);
         float distance = Moteurs_PulsesEnMetres(delta);
         bool timeout   = (millis() - tDebutMouvement) > TIMEOUT_AVANCE_MS;
@@ -115,20 +119,27 @@ void Deplacement_MettreAJour(void) {
         unsigned long tMaint = millis();
         float dt = (tMaint - tPrecRotation) / 1000.0f;
         tPrecRotation = tMaint;
+        if (dt > 0.05f) dt = 0.05f;   // plafond anti-saut d'integration
 
         float vitesseZ = Imu_LireGyroZ();
         angleCumule += vitesseZ * dt;
 
         float reste  = angleCibleAbs - fabs(angleCumule);
         bool timeout = (millis() - tDebutMouvement) > TIMEOUT_ROTATION_MS;
+        bool tempsMiniEcoule = (millis() - tDebutMouvement) > ROT_TEMPS_MIN_MS;
 
         if (!rotationLente && reste < ROT_MARGE_LENTE_DEG) {
             rotationLente = true;
-            int lente = VITESSE_ROTATION / 2;
-            Securite_DefinirVitesse(signeRotation *  lente,
-                                    signeRotation * -lente);
         }
-        if (fabs(angleCumule) >= (angleCibleAbs - ROT_MARGE_ARRET_DEG)
+
+        // Re-emission de la commande moteur a chaque iteration : si une
+        // ecriture I2C vers la carte moteur est ratee, la suivante la
+        // rattrape -> plus de virage "mort" bloque jusqu'au timeout.
+        int vitesse = rotationLente ? (VITESSE_ROTATION / 2) : VITESSE_ROTATION;
+        Securite_DefinirVitesse(signeRotation *  vitesse,
+                                signeRotation * -vitesse);
+
+        if ((tempsMiniEcoule && fabs(angleCumule) >= (angleCibleAbs - ROT_MARGE_ARRET_DEG))
             || timeout) {
             Securite_Arreter();
             etatMouvement = INACTIF;

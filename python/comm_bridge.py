@@ -150,7 +150,17 @@ def mouvement_actif():
     resultat = _appeler_avec_retour("mouvement_actif")
     return bool(resultat) if resultat is not None else False
 
+def mouvement_actif_brut():
+    """Retourne 1 (en cours), 0 (termine) ou None (lecture Bridge ratee).
 
+    Contrairement a mouvement_actif(), NE confond PAS une lecture ratee
+    avec un mouvement termine — indispensable pour le sequencage des blocs.
+    """
+    resultat = _appeler_avec_retour("mouvement_actif")
+    if resultat is None:
+        return None
+    return 1 if resultat else 0
+    
 # ======================== LEDs ========================
 
 def definir_mode_bandeaux(mode):

@@ -95,6 +95,11 @@ def obtenir_camera():
 def _tache_capture():
     global derniere_frame, camera
     while True:
+        # Pendant une sequence, on libere le CPU/tpool pour le Bridge :
+        # la video se fige quelques secondes, sans consequence.
+        if sequence_en_cours:
+            socketio.sleep(0.1)
+            continue
         cam = obtenir_camera()
         if cam is None:
             socketio.sleep(2)
@@ -110,6 +115,9 @@ def _tache_capture():
 
 def generer_flux():
     while True:
+        if sequence_en_cours:
+            socketio.sleep(0.2)
+            continue
         frame = derniere_frame
         if frame is None:
             socketio.sleep(0.1)
@@ -137,7 +145,10 @@ def _sur_changement_feu(present, couleur, confiance):
         'couleur': nom,
         'confiance': confiance,
     })
-    comm_bridge.notifier_feu(present, couleur, confiance)
+    # Pendant une sequence Blockly, on ne notifie PAS le MCU : deux sources
+    # RPC simultanees (vision + sequence) corrompent la trame du Bridge.
+    if not sequence_en_cours:
+        comm_bridge.notifier_feu(present, couleur, confiance)
 
 
 def _sur_lignes_detectees(detecte, ecart):
@@ -145,8 +156,9 @@ def _sur_lignes_detectees(detecte, ecart):
         'detecte': detecte,
         'ecart': ecart,
     })
-    comm_bridge.notifier_lignes(detecte, ecart)
-    navigation.traiter_lignes(detecte, ecart)
+    if not sequence_en_cours:
+        comm_bridge.notifier_lignes(detecte, ecart)
+        navigation.traiter_lignes(detecte, ecart)
 
 
 def _tache_vision():
@@ -160,8 +172,11 @@ def _tache_vision():
     print("[vision] Pipeline de detection active")
 
     while True:
+        # Pendant une sequence Blockly, on suspend TOTALEMENT la vision :
+        # sinon YOLO/OpenCV saturent le CPU et affament le thread de lecture
+        # du Bridge -> buffer serie qui deborde -> trame RPC corrompue.
         frame = derniere_frame
-        if frame is not None:
+        if frame is not None and not sequence_en_cours:
             try:
                 eventlet.tpool.execute(bv.traiter, frame)
             except Exception as e:
@@ -357,8 +372,29 @@ def _executer_sequence(sequence):
 
 
 def _mouvement_bloquant(fonction_bridge, valeur):
+    t0 = time.time()
     eventlet.tpool.execute(fonction_bridge, abs(float(valeur)))
-    socketio.sleep(0.3)
+
+    # 1) Confirmer le demarrage
+    demarre = False
+    debut = time.time()
+    while time.time() - debut < 1.5:
+        if sequence_stop:
+            eventlet.tpool.execute(comm_bridge.arreter_mouvement)
+            return False
+        if eventlet.tpool.execute(comm_bridge.mouvement_actif_brut) == 1:
+            demarre = True
+            break
+        socketio.sleep(0.05)
+    print(f"[mvt] demarre={demarre} (confirme en {time.time()-t0:.2f}s)")
+
+    # Mouvement jamais demarre = Bridge sature/corrompu : on interrompt la
+    # sequence au lieu d'enchainer des timeouts de 10 s sur une liaison morte.
+    if not demarre:
+        eventlet.tpool.execute(comm_bridge.arreter_mouvement)
+        return False
+
+    # 2) Attendre la fin
     debut = time.time()
     while True:
         if sequence_stop:
@@ -366,10 +402,11 @@ def _mouvement_bloquant(fonction_bridge, valeur):
             return False
         if time.time() - debut > 10:
             eventlet.tpool.execute(comm_bridge.arreter_mouvement)
+            print("[mvt] TIMEOUT 10s")
             socketio.sleep(0.3)
             return True
-        actif = eventlet.tpool.execute(comm_bridge.mouvement_actif)
-        if not actif:
+        if eventlet.tpool.execute(comm_bridge.mouvement_actif_brut) == 0:
+            print(f"[mvt] FINI en {time.time()-t0:.2f}s")
             socketio.sleep(0.3)
             return True
         socketio.sleep(0.2)
