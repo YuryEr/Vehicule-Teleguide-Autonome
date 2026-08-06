@@ -42,6 +42,20 @@ void Deplacement_Roues(int gauche, int droite) {
     Securite_DefinirVitesse(gauche, droite);
 }
 
+// ======================== Re-emission des consignes ========================
+
+// La consigne moteur est repetee pendant tout le mouvement : une ecriture I2C
+// perdue laisserait sinon les chenilles a l'arret alors que la machine a etats
+// croit avancer, jusqu'au timeout. La repetition est cadencee car le bus porte
+// deja une lecture d'encodeur ou de gyroscope a chaque iteration.
+static bool reemissionDue(void) {
+    static unsigned long tPrecedente = 0;
+    unsigned long maintenant = millis();
+    if (maintenant - tPrecedente < REEMISSION_MOTEUR_MS) return false;
+    tPrecedente = maintenant;
+    return true;
+}
+
 // ======================== Demarrage mouvements ========================
 
 static void demarrerAvance(float distance_m, int sens) {
@@ -102,10 +116,10 @@ void Deplacement_MettreAJour(void) {
     }
 
     if (etatMouvement == AVANCE) {
-        // Re-emission de la commande moteur : une ecriture I2C ratee est
-        // rattrapee a l'iteration suivante -> plus d'avance "morte".
-        Securite_DefinirVitesse(sensAvance * VITESSE_DEPLACEMENT,
-                                sensAvance * VITESSE_DEPLACEMENT);
+        if (reemissionDue()) {
+            Securite_DefinirVitesse(sensAvance * VITESSE_DEPLACEMENT,
+                                    sensAvance * VITESSE_DEPLACEMENT);
+        }
 
         long delta     = labs(Moteurs_LireEncodeurGauche() - encodeurDepart);
         float distance = Moteurs_PulsesEnMetres(delta);
@@ -119,28 +133,31 @@ void Deplacement_MettreAJour(void) {
         unsigned long tMaint = millis();
         float dt = (tMaint - tPrecRotation) / 1000.0f;
         tPrecRotation = tMaint;
-        if (dt > 0.05f) dt = 0.05f;   // plafond anti-saut d'integration
 
         float vitesseZ = Imu_LireGyroZ();
         angleCumule += vitesseZ * dt;
 
         float reste  = angleCibleAbs - fabs(angleCumule);
         bool timeout = (millis() - tDebutMouvement) > TIMEOUT_ROTATION_MS;
-        bool tempsMiniEcoule = (millis() - tDebutMouvement) > ROT_TEMPS_MIN_MS;
 
         if (!rotationLente && reste < ROT_MARGE_LENTE_DEG) {
             rotationLente = true;
         }
 
-        // Re-emission de la commande moteur a chaque iteration : si une
-        // ecriture I2C vers la carte moteur est ratee, la suivante la
-        // rattrape -> plus de virage "mort" bloque jusqu'au timeout.
         int vitesse = rotationLente ? (VITESSE_ROTATION / 2) : VITESSE_ROTATION;
-        Securite_DefinirVitesse(signeRotation *  vitesse,
-                                signeRotation * -vitesse);
+        if (reemissionDue()) {
+            Securite_DefinirVitesse(signeRotation *  vitesse,
+                                    signeRotation * -vitesse);
+        }
 
-        if ((tempsMiniEcoule && fabs(angleCumule) >= (angleCibleAbs - ROT_MARGE_ARRET_DEG))
-            || timeout) {
+        // La marge compense l'inertie de fin de rotation, mais elle ne doit
+        // jamais depasser la cible : avec une marge de 10 degres, une consigne
+        // de 10 degres serait atteinte des le premier passage, angleCumule
+        // valant encore zero, et la rotation se terminerait sans avoir eu lieu.
+        float marge = (angleCibleAbs > ROT_MARGE_ARRET_DEG)
+                      ? ROT_MARGE_ARRET_DEG : 0.0f;
+
+        if (fabs(angleCumule) >= (angleCibleAbs - marge) || timeout) {
             Securite_Arreter();
             etatMouvement = INACTIF;
         }

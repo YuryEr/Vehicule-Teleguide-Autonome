@@ -372,7 +372,6 @@ def _executer_sequence(sequence):
 
 
 def _mouvement_bloquant(fonction_bridge, valeur):
-    t0 = time.time()
     eventlet.tpool.execute(fonction_bridge, abs(float(valeur)))
 
     # 1) Confirmer le demarrage
@@ -382,11 +381,10 @@ def _mouvement_bloquant(fonction_bridge, valeur):
         if sequence_stop:
             eventlet.tpool.execute(comm_bridge.arreter_mouvement)
             return False
-        if eventlet.tpool.execute(comm_bridge.mouvement_actif_brut) == 1:
+        if eventlet.tpool.execute(comm_bridge.mouvement_actif) == 1:
             demarre = True
             break
         socketio.sleep(0.05)
-    print(f"[mvt] demarre={demarre} (confirme en {time.time()-t0:.2f}s)")
 
     # Mouvement jamais demarre = Bridge sature/corrompu : on interrompt la
     # sequence au lieu d'enchainer des timeouts de 10 s sur une liaison morte.
@@ -402,11 +400,9 @@ def _mouvement_bloquant(fonction_bridge, valeur):
             return False
         if time.time() - debut > 10:
             eventlet.tpool.execute(comm_bridge.arreter_mouvement)
-            print("[mvt] TIMEOUT 10s")
             socketio.sleep(0.3)
             return True
-        if eventlet.tpool.execute(comm_bridge.mouvement_actif_brut) == 0:
-            print(f"[mvt] FINI en {time.time()-t0:.2f}s")
+        if eventlet.tpool.execute(comm_bridge.mouvement_actif) == 0:
             socketio.sleep(0.3)
             return True
         socketio.sleep(0.2)

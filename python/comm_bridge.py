@@ -14,7 +14,7 @@ Contrat RPC (Python -> MCU) :
         avancer_metres(float), reculer_metres(float)
         tourner_gauche_deg(float), tourner_droite_deg(float)
         arreter_mouvement()
-        mouvement_actif() -> int (0/1)
+        mouvement_actif() -> 1, 0, ou None si la lecture echoue
     LEDs :
         mode_bandeaux(int)  [0=eteint, 1=position, 2=gyrophare]
         mode_phares(int)    [0=eteint, 1=allume]
@@ -146,21 +146,18 @@ def arreter_mouvement():
 
 
 def mouvement_actif():
-    """Retourne True si un deplacement asservi est en cours sur le MCU."""
-    resultat = _appeler_avec_retour("mouvement_actif")
-    return bool(resultat) if resultat is not None else False
-
-def mouvement_actif_brut():
     """Retourne 1 (en cours), 0 (termine) ou None (lecture Bridge ratee).
 
-    Contrairement a mouvement_actif(), NE confond PAS une lecture ratee
-    avec un mouvement termine — indispensable pour le sequencage des blocs.
+    La distinction entre 0 et None est indispensable au sequencage des blocs :
+    confondre une lecture ratee avec un mouvement termine fait enchainer la
+    commande suivante par-dessus celle en cours, qui est alors ecrasee.
     """
     resultat = _appeler_avec_retour("mouvement_actif")
     if resultat is None:
         return None
     return 1 if resultat else 0
-    
+
+
 # ======================== LEDs ========================
 
 def definir_mode_bandeaux(mode):

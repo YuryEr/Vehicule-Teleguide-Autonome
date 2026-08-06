@@ -363,7 +363,7 @@ perdre la ligne.
 | `KD_LATERAL` | Gain derive : s'oppose aux variations de l'ecart, amortit le depassement |
 | `ZONE_MORTE_PX` | Ecart en deca duquel la ligne est jugee centree |
 | `CORRECTION_MAX` | Correction maximale (garde les deux roues en avant) |
-| `SENS` | **-1 actuellement** (camera inversee). A remettre a **1** quand la coque 3D sera montee. |
+| `SENS` | Oriente la correction. **-1** est la valeur validee sur le montage actuel ; a reprendre si la camera est reorientee. |
 | `MISS_MAX` | Cycles sans ligne avant l'arret |
 
 ### Procedure de reglage

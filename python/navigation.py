@@ -31,7 +31,8 @@ KP_LATERAL     = 0.015    # gain proportionnel : pixels d'ecart -> vitesse
 KD_LATERAL     = 0.035    # gain derive : amortit le depassement
 ZONE_MORTE_PX  = 35      # ecart en deca duquel la ligne est jugee centree
 CORRECTION_MAX = 8       # correction maximale (garde les deux roues en avant)
-SENS           = -1      # mettre -1 si le robot braque du MAUVAIS cote
+SENS           = -1      # oriente la correction ; -1 valide sur le montage
+                         # actuel, a reprendre si la camera est reorientee
 MISS_MAX       = 8       # cycles sans ligne avant l'arret
 
 

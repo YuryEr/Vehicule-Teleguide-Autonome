@@ -32,7 +32,9 @@
 // Compensation rotation
 #define ROT_MARGE_ARRET_DEG   10.0
 #define ROT_MARGE_LENTE_DEG   20.0
-#define ROT_TEMPS_MIN_MS      400     // duree minimale d'une rotation (anti-saut)
+
+// Repetition de la consigne moteur pendant un mouvement asservi (ms)
+#define REEMISSION_MOTEUR_MS  100
 
 // Timeouts securite (ms)
 #define TIMEOUT_AVANCE_MS     12000
