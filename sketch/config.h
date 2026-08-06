@@ -36,10 +36,6 @@
 // Repetition de la consigne moteur pendant un mouvement asservi (ms)
 #define REEMISSION_MOTEUR_MS  100
 
-// Asservissement de cap pendant une avance rectiligne
-#define CAP_KP                0.8f  // unites de vitesse par degre de derive
-#define CAP_CORRECTION_MAX    6     // differentiel maximal applique
-#define CAP_SENS              1     // -1 si la correction aggrave la derive
 
 // Timeouts securite (ms)
 #define TIMEOUT_AVANCE_MS     12000
