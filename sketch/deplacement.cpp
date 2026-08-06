@@ -10,9 +10,11 @@ enum EtatMouvement { INACTIF, AVANCE, ROTATION };
 static volatile EtatMouvement etatMouvement = INACTIF;
 
 // Contexte avance
-static long  encodeurDepart = 0;
-static float distanceCible  = 0.0f;
-static int   sensAvance     = 1;
+static long          encodeurDepart = 0;
+static float         distanceCible  = 0.0f;
+static int           sensAvance     = 1;
+static float         capCumule      = 0.0f;
+static unsigned long tPrecAvance    = 0;
 
 // Contexte rotation
 static float         angleCumule   = 0.0f;
@@ -62,6 +64,8 @@ static void demarrerAvance(float distance_m, int sens) {
     encodeurDepart  = Moteurs_LireEncodeurGauche();
     distanceCible   = fabs(distance_m);
     sensAvance      = sens;
+    capCumule       = 0.0f;
+    tPrecAvance     = millis();
     tDebutMouvement = millis();
     etatMouvement   = AVANCE;
     Securite_DefinirVitesse(sens * VITESSE_DEPLACEMENT,
@@ -116,9 +120,22 @@ void Deplacement_MettreAJour(void) {
     }
 
     if (etatMouvement == AVANCE) {
+        // Asservissement de cap : les deux chenilles ne convertissent pas la
+        // meme consigne en la meme distance, et le vehicule derive en ligne
+        // droite. On integre la derive angulaire et on la compense par un
+        // differentiel ; la distance, elle, reste asservie par l'encodeur.
+        unsigned long tMaintAvance = millis();
+        float dtCap = (tMaintAvance - tPrecAvance) / 1000.0f;
+        tPrecAvance = tMaintAvance;
+        capCumule += Imu_LireGyroZ() * dtCap;
+
+        int correction = (int)(CAP_SENS * CAP_KP * capCumule);
+        correction = constrain(correction, -CAP_CORRECTION_MAX,
+                                            CAP_CORRECTION_MAX);
+
         if (reemissionDue()) {
-            Securite_DefinirVitesse(sensAvance * VITESSE_DEPLACEMENT,
-                                    sensAvance * VITESSE_DEPLACEMENT);
+            Securite_DefinirVitesse(sensAvance * VITESSE_DEPLACEMENT + correction,
+                                    sensAvance * VITESSE_DEPLACEMENT - correction);
         }
 
         long delta     = labs(Moteurs_LireEncodeurGauche() - encodeurDepart);
@@ -140,12 +157,18 @@ void Deplacement_MettreAJour(void) {
         float reste  = angleCibleAbs - fabs(angleCumule);
         bool timeout = (millis() - tDebutMouvement) > TIMEOUT_ROTATION_MS;
 
+        // Le passage en approche lente doit prendre effet tout de suite :
+        // attendre la prochaine re-emission laisserait le vehicule tourner a
+        // pleine vitesse jusqu'a REEMISSION_MOTEUR_MS de plus, soit plusieurs
+        // degres parcourus avant le ralentissement.
+        bool changementVitesse = false;
         if (!rotationLente && reste < ROT_MARGE_LENTE_DEG) {
-            rotationLente = true;
+            rotationLente     = true;
+            changementVitesse = true;
         }
 
         int vitesse = rotationLente ? (VITESSE_ROTATION / 2) : VITESSE_ROTATION;
-        if (reemissionDue()) {
+        if (changementVitesse || reemissionDue()) {
             Securite_DefinirVitesse(signeRotation *  vitesse,
                                     signeRotation * -vitesse);
         }
