@@ -27,9 +27,9 @@ import comm_bridge
 # ======================== Parametres de suivi ========================
 
 VITESSE_BASE   = 15      # vitesse des deux roues en ligne droite (0-100)
-KP_LATERAL     = 0.02    # gain proportionnel : pixels d'ecart -> vitesse
-KD_LATERAL     = 0.06    # gain derive : amortit le depassement
-ZONE_MORTE_PX  = 25      # ecart en deca duquel la ligne est jugee centree
+KP_LATERAL     = 0.015    # gain proportionnel : pixels d'ecart -> vitesse
+KD_LATERAL     = 0.035    # gain derive : amortit le depassement
+ZONE_MORTE_PX  = 35      # ecart en deca duquel la ligne est jugee centree
 CORRECTION_MAX = 8       # correction maximale (garde les deux roues en avant)
 SENS           = -1      # mettre -1 si le robot braque du MAUVAIS cote
 MISS_MAX       = 8       # cycles sans ligne avant l'arret
