@@ -36,6 +36,14 @@
 // Repetition de la consigne moteur pendant un mouvement asservi (ms)
 #define REEMISSION_MOTEUR_MS  100
 
+// Compensation de derive en ligne droite. Les deux chenilles ne convertissent
+// pas la meme consigne en la meme distance ; ce decalage fixe rattrape l'ecart,
+// ajoute d'un cote et retranche de l'autre. Le decalage suit le sens de marche,
+// le desequilibre mecanique etant le meme en avant et en arriere.
+// Le signe qui corrige depend du cablage des deux canaux moteur : essayer une
+// valeur, et prendre l'opposee si la derive s'aggrave.
+#define AVANCE_TRIM           0
+
 
 // Timeouts securite (ms)
 #define TIMEOUT_AVANCE_MS     12000

@@ -64,8 +64,8 @@ static void demarrerAvance(float distance_m, int sens) {
     sensAvance      = sens;
     tDebutMouvement = millis();
     etatMouvement   = AVANCE;
-    Securite_DefinirVitesse(sens * VITESSE_DEPLACEMENT,
-                            sens * VITESSE_DEPLACEMENT);
+    Securite_DefinirVitesse(sens * (VITESSE_DEPLACEMENT + AVANCE_TRIM),
+                            sens * (VITESSE_DEPLACEMENT - AVANCE_TRIM));
 }
 
 static void demarrerRotation(float angle_deg, int signe) {
@@ -117,8 +117,8 @@ void Deplacement_MettreAJour(void) {
 
     if (etatMouvement == AVANCE) {
         if (reemissionDue()) {
-            Securite_DefinirVitesse(sensAvance * VITESSE_DEPLACEMENT,
-                                    sensAvance * VITESSE_DEPLACEMENT);
+            Securite_DefinirVitesse(sensAvance * (VITESSE_DEPLACEMENT + AVANCE_TRIM),
+                                    sensAvance * (VITESSE_DEPLACEMENT - AVANCE_TRIM));
         }
 
         long delta     = labs(Moteurs_LireEncodeurGauche() - encodeurDepart);
