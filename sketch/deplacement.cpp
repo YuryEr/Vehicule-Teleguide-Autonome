@@ -56,6 +56,32 @@ static bool reemissionDue(void) {
     return true;
 }
 
+// ======================== Compensation de derive ========================
+
+// Repartit le decalage fractionnaire sur les re-emissions successives par
+// accumulation : l'unite entiere n'est appliquee que lorsque l'accumulateur
+// franchit le denominateur, ce qui etale la correction au lieu de la grouper
+// en salves. A n'appeler qu'au moment d'une re-emission.
+static int trimAvance(void) {
+    static int accumulateur = 0;
+    if (AVANCE_TRIM_NUM == 0) return 0;
+
+    accumulateur += (AVANCE_TRIM_NUM > 0) ? AVANCE_TRIM_NUM : -AVANCE_TRIM_NUM;
+    if (accumulateur < AVANCE_TRIM_DEN) return 0;
+
+    accumulateur -= AVANCE_TRIM_DEN;
+    return (AVANCE_TRIM_NUM > 0) ? 1 : -1;
+}
+
+// Le decalage porte sur une seule chenille : l'ajouter d'un cote et le
+// retrancher de l'autre doublerait le differentiel pour rien.
+static void consignesAvance(int sens, int *gauche, int *droite) {
+    int base = sens * VITESSE_DEPLACEMENT;
+    int trim = trimAvance();
+    *gauche  = base + ((trim > 0) ? sens : 0);
+    *droite  = base + ((trim < 0) ? sens : 0);
+}
+
 // ======================== Demarrage mouvements ========================
 
 static void demarrerAvance(float distance_m, int sens) {
@@ -64,8 +90,10 @@ static void demarrerAvance(float distance_m, int sens) {
     sensAvance      = sens;
     tDebutMouvement = millis();
     etatMouvement   = AVANCE;
-    Securite_DefinirVitesse(sens * (VITESSE_DEPLACEMENT + AVANCE_TRIM),
-                            sens * (VITESSE_DEPLACEMENT - AVANCE_TRIM));
+
+    int gauche, droite;
+    consignesAvance(sens, &gauche, &droite);
+    Securite_DefinirVitesse(gauche, droite);
 }
 
 static void demarrerRotation(float angle_deg, int signe) {
@@ -117,8 +145,9 @@ void Deplacement_MettreAJour(void) {
 
     if (etatMouvement == AVANCE) {
         if (reemissionDue()) {
-            Securite_DefinirVitesse(sensAvance * (VITESSE_DEPLACEMENT + AVANCE_TRIM),
-                                    sensAvance * (VITESSE_DEPLACEMENT - AVANCE_TRIM));
+            int gauche, droite;
+            consignesAvance(sensAvance, &gauche, &droite);
+            Securite_DefinirVitesse(gauche, droite);
         }
 
         long delta     = labs(Moteurs_LireEncodeurGauche() - encodeurDepart);

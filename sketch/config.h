@@ -22,10 +22,15 @@
 #define REG_GYRO_XOUT_H       0x43
 #define SENSIBILITE_GYRO      131.0
 
-// Calibration mecanique. Le rapport de reduction est celui annonce par le
-// fabricant pour le JGB37-520 12V 110RPM.
+// Calibration mecanique. DIAMETRE_ROUE_MM et RATIO_REDUCTEUR n'interviennent
+// que par leur produit dans Moteurs_PulsesEnMetres, et le glissement de la
+// chenille s'y cache : ce sont des constantes ajustees par la mesure, pas des
+// grandeurs physiques. Le rapport annonce par le fabricant pour le JGB37-520
+// est de 90, mais il donne le double de la distance reelle sur ce chassis.
+// Reglage : RATIO_nouveau = RATIO_actuel * (distance_commandee / mesuree),
+// mesure sur 2 m pour limiter le poids des transitoires.
 #define DIAMETRE_ROUE_MM      65.0
-#define RATIO_REDUCTEUR       90.0
+#define RATIO_REDUCTEUR       45.0
 #define IMPULSIONS_PAR_TOUR   44.0
 #define IMPULSIONS_PAR_ROUE   (IMPULSIONS_PAR_TOUR * RATIO_REDUCTEUR)
 
@@ -44,13 +49,17 @@
 // Repetition de la consigne moteur pendant un mouvement asservi (ms)
 #define REEMISSION_MOTEUR_MS  100
 
-// Compensation de derive en ligne droite. Les deux chenilles ne convertissent
-// pas la meme consigne en la meme distance ; ce decalage fixe rattrape l'ecart,
-// ajoute d'un cote et retranche de l'autre. Le decalage suit le sens de marche,
-// le desequilibre mecanique etant le meme en avant et en arriere.
-// Le signe qui corrige depend du cablage des deux canaux moteur : essayer une
-// valeur, et prendre l'opposee si la derive s'aggrave.
-#define AVANCE_TRIM           0
+// Compensation de derive en ligne droite. Les deux moteurs tiennent la meme
+// vitesse, verifie aux encodeurs a 1 % pres ; ce sont les chenilles qui ne
+// parcourent pas la meme distance. Le decalage ajoute des impulsions du cote
+// qui patine.
+// La consigne moteur etant entiere, une unite complete represente plus de 4 %
+// de differentiel, souvent trop. Elle est donc repartie sur les re-emissions
+// successives : AVANCE_TRIM_NUM sur AVANCE_TRIM_DEN d'entre elles la portent,
+// soit un decalage effectif de NUM/DEN d'unite.
+// Signe positif pour accelerer la chenille gauche, negatif pour la droite.
+#define AVANCE_TRIM_NUM       0     // de -AVANCE_TRIM_DEN a +AVANCE_TRIM_DEN
+#define AVANCE_TRIM_DEN       8
 
 
 // Timeouts securite (ms)
