@@ -6,11 +6,15 @@
 #define ADRESSE_GYRO          0x68
 #define ADRESSE_LIDAR         0x10
 
-// Registres carte moteur Hiwonder
-#define REG_TYPE_MOTEUR       20
-#define REG_POLARITE_ENCODEUR 21
-#define REG_VITESSE_FIXE      51
-#define REG_ENCODEUR_TOTAL    60
+// Registres carte moteur Hiwonder. Adresses et unites reprises de l'exemple
+// officiel du fabricant, fourni avec les moteurs a encodeur.
+#define REG_TYPE_MOTEUR       20      // 0x14 : type de moteur a encodeur
+#define REG_POLARITE_ENCODEUR 21      // 0x15 : polarite du sens de comptage
+#define REG_PWM_FIXE          31      // 0x1F : PWM fixe, boucle ouverte (-100 a 100)
+#define REG_VITESSE_FIXE      51      // 0x33 : vitesse fixe, boucle fermee
+#define REG_ENCODEUR_TOTAL    60      // 0x3C : impulsions cumulees des 4 canaux
+
+// JGB37-520 12V 110RPM : 44 impulsions par tour d'aimant, reduction 90.
 #define TYPE_JGB37_520        3
 
 // Registres MPU-6050
@@ -18,15 +22,19 @@
 #define REG_GYRO_XOUT_H       0x43
 #define SENSIBILITE_GYRO      131.0
 
-// Calibration mecanique
+// Calibration mecanique. Le rapport de reduction est celui annonce par le
+// fabricant pour le JGB37-520 12V 110RPM.
 #define DIAMETRE_ROUE_MM      65.0
-#define RATIO_REDUCTEUR       50.0
+#define RATIO_REDUCTEUR       90.0
 #define IMPULSIONS_PAR_TOUR   44.0
 #define IMPULSIONS_PAR_ROUE   (IMPULSIONS_PAR_TOUR * RATIO_REDUCTEUR)
 
-// Vitesses moteur (consignes)
-#define VITESSE_DEPLACEMENT   12
-#define VITESSE_ROTATION      12
+// Vitesses moteur (consignes). En boucle fermee, l'unite est le nombre
+// d'impulsions par 10 ms : la plage utile va jusqu'a environ 50 selon la
+// charge et la tension. Les valeurs retenues sont celles de l'exemple du
+// fabricant, 23 en translation et 20 en rotation sur place.
+#define VITESSE_DEPLACEMENT   23
+#define VITESSE_ROTATION      20
 #define VITESSE_JOYSTICK      30
 
 // Compensation rotation
