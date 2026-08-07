@@ -19,8 +19,23 @@
 
 // Registres MPU-6050
 #define REG_PWR_MGMT_1        0x6B
-#define REG_GYRO_XOUT_H       0x43
-#define SENSIBILITE_GYRO      131.0
+#define REG_SMPRT_DIV         0x19    // diviseur de cadence d'echantillonnage
+#define REG_CONFIG            0x1A    // filtre passe-bas numerique (DLPF)
+#define REG_GYRO_CONFIG       0x1B    // pleine echelle du gyroscope
+#define REG_GYRO_ZOUT_H       0x47    // axe Z seul, 2 octets
+#define SENSIBILITE_GYRO      131.0   // LSB par deg/s a pleine echelle +/-250
+
+// Le capteur demarre avec 256 Hz de bande passante, tres au-dela de ce que le
+// chassis produit : on n'integre alors que la vibration des chenilles. La
+// valeur 4 ramene la bande a 20 Hz, sous la moitie de la cadence de lecture.
+#define DLPF_20HZ             4
+#define SMPRT_DIV_200HZ       4       // 1000 / (1 + 4) = 200 Hz interne
+
+// Calibration du zero. La version longue sert au demarrage, la courte est
+// rejouee avant chaque mouvement asservi, le vehicule etant alors immobile.
+#define IMU_CAL_ECHANTILLONS        200
+#define IMU_CAL_ECHANTILLONS_RAPIDE 40
+#define IMU_CAL_DISPERSION_MAX      3.0f  // deg/s : au-dela, le vehicule bougeait
 
 // Calibration mecanique. DIAMETRE_ROUE_MM et RATIO_REDUCTEUR n'interviennent
 // que par leur produit dans Moteurs_PulsesEnMetres, et le glissement de la
