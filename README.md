@@ -284,6 +284,7 @@ Sans cette ligne, le conteneur Docker tourne mais le port n'est pas accessible d
 | Ecran : erreur `portOutputRegister` a la compilation | Verifier `Adafruit BusIO (1.17.4)` — les versions < 1.15 ne compilent pas sur Zephyr |
 | LiDAR `capteur present : NON` | CFG (broche 5) a la masse ? Alimentation >= 3.7V ? **Power cycle apres avoir branche CFG** ? SDA/SCL non inverses ? |
 | Un capteur absent rend la carte muette | Le Bridge est enregistre **avant** les inits materielles dans `setup()`, donc le controle survit a un capteur defaillant. Si le probleme persiste, verifier qu'aucune init bloquante n'a ete deplacee avant les `provide_safe`. |
+| `[Bridge.read_loop] 'utf-8' codec can't decode byte ...` puis tous les RPC qui expirent apres 10 s | La sortie serie du MCU partage son lien avec les RPC du Bridge. Sous une ecriture serie soutenue, le multiplexage perd une frontiere de trame et la boucle de lecture du Bridge meurt : plus aucun appel n'aboutit jusqu'au redemarrage. **Commenter `TEST_CAPTEURS_ACTIF` dans `test_capteurs.h`**, et n'ecrire sur le port serie que ponctuellement. Symptome typique : une sequence de blocs qui casse apres une dizaine de commandes. |
 
 ### Diagnostic I2C
 
