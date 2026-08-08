@@ -1,5 +1,5 @@
 """
-Navigation autonome — TankETS (MPU / Qualcomm Linux)
+Navigation autonome, TankETS (MPU / Qualcomm Linux)
 =====================================================
 Suivi de ligne par correcteur proportionnel-derive.
 
@@ -10,8 +10,8 @@ Principe :
     avancent toujours (valeurs positives).
 
     Le terme proportionnel repond a l'ecart, le terme derive s'oppose
-    a ses variations. Sans ce dernier, le retard de la boucle — vision
-    a 10 Hz, plus la latence du Bridge et des moteurs — fait arriver la
+    a ses variations. Sans ce dernier, le retard de la boucle (vision
+    a 10 Hz, plus la latence du Bridge et des moteurs) fait arriver la
     correction alors que l'ecart a deja change de signe : le vehicule
     depasse d'un bord a l'autre et finit par perdre la ligne.
 

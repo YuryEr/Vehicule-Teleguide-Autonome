@@ -9,13 +9,13 @@
 
 /*
  * Generation des codes QR : librairie QRCode de Richard Moore (ricmoo),
- * licence MIT — https://github.com/ricmoo/QRCode
+ * licence MIT, https://github.com/ricmoo/QRCode
  * Son auteur cite la librairie C++ de Project Nayuki comme determinante
  * dans son developpement, licence MIT
  * https://www.nayuki.io/page/qr-code-generator-library
  *
- * Symbologie : ISO/IEC 18004:2015, Information technology — Automatic
- * identification and data capture techniques — QR Code bar code
+ * Symbologie : ISO/IEC 18004:2015, Information technology, Automatic
+ * identification and data capture techniques, QR Code bar code
  * symbology specification.
  *
  * Format d'adhesion WiFi "WIFI:T:...;S:...;P:...;;" : schema de facto

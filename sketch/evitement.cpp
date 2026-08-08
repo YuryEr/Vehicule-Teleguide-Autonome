@@ -93,8 +93,6 @@ void Evitement_Initialiser(void) {
     abandonne     = false;
 }
 
-bool Evitement_EnCours(void) { return etat != REPOS; }
-
 void Evitement_MettreAJour(void) {
     switch (etat) {
 

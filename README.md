@@ -339,7 +339,9 @@ Attendu : `0x34` (moteurs), `0x68` (IMU), `0x10` (LiDAR).
 | `lancer_sondage` | aucun | Sonde les trois secteurs (~1 s, vehicule a l'arret) |
 | `cote_degage` | aucun, retourne int | 0 = sondage en cours, 1 = gauche, 2 = droite |
 
-RPC dans l'autre sens (MCU recoit du MPU) : `on_feu(bool, int, int)`, `on_lignes(bool, int)`.
+RPC dans l'autre sens (MCU recoit du MPU) : `on_feu(bool, int, int)`. L'ecart de
+ligne n'est pas transmis au MCU : le suivi de ligne est calcule sur le MPU, qui
+n'envoie que la consigne de vitesse par `roues`.
 
 **Note** : le Bridge ne transmet pas correctement les nombres negatifs. Toujours envoyer
 des valeurs positives — le sens est gere par des fonctions dediees cote MCU (c'est

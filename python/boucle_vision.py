@@ -1,5 +1,5 @@
 """
-Pipeline de vision — TankETS
+Pipeline de vision, TankETS
 =============================
 Detections routieres avec anti-rebond.
 

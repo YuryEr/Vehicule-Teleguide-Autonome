@@ -1,5 +1,5 @@
 """
-Serveur web — TankETS (MPU / Qualcomm Linux)
+Serveur web, TankETS (MPU / Qualcomm Linux)
 ==============================================
 Serveur Flask + SocketIO pour l'interface de controle.
 
@@ -179,12 +179,6 @@ def flux_video():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
-def _notifier_lignes_mcu(detecte, ecart):
-    """Regroupe les echanges MCU d'un cycle de ligne en un seul aller-retour."""
-    comm_bridge.notifier_lignes(detecte, ecart)
-    navigation.traiter_lignes(detecte, ecart)
-
-
 def _sur_changement_feu(present, couleur, confiance):
     """Diffuse un changement d'etat du feu. Appele depuis la greenlet."""
     nom = module_vision.NOMS_COULEURS.get(couleur, "AUCUNE")
@@ -201,17 +195,17 @@ def _sur_changement_feu(present, couleur, confiance):
 def _sur_lignes_detectees(detecte, ecart):
     """Diffuse un cycle de detection de ligne. Appele depuis la greenlet.
 
-    L'emission se fait ici meme, la ou vit la boucle d'evenements. Les echanges
-    avec le MCU partent en revanche dans le pool : ils bloquent le temps d'un
-    aller-retour RPC, ce qui figerait la boucle. Le verrou de comm_bridge
-    serialise les appelants concurrents.
+    L'emission se fait ici meme, la ou vit la boucle d'evenements. La commande
+    moteur part en revanche dans le pool : elle bloque le temps d'un aller-retour
+    RPC, ce qui figerait la boucle. Le verrou de comm_bridge serialise les
+    appelants concurrents.
     """
     socketio.emit('etat_lignes', {
         'detecte': detecte,
         'ecart': ecart,
     })
     if not sequence_en_cours:
-        eventlet.tpool.execute(_notifier_lignes_mcu, detecte, ecart)
+        eventlet.tpool.execute(navigation.traiter_lignes, detecte, ecart)
 
 
 _boucle_vision = None
@@ -292,7 +286,7 @@ def _tache_lignes():
         else:
             prochaine = time.time()
 
-# ======================== Socket — Connexion ========================
+# ======================== Socket : Connexion ========================
 
 @socketio.on('connect')
 def on_connect():
@@ -304,7 +298,7 @@ def on_disconnect():
     print("[web] Client deconnecte")
 
 
-# ======================== Socket — Pilotage manuel ========================
+# ======================== Socket : Pilotage manuel ========================
 
 @socketio.on('joystick')
 def on_joystick(data):
@@ -341,13 +335,13 @@ def on_toggle_camera(data):
     socketio.emit("etat_camera", {"active": etat["camera_active"]})
 
 
-# ======================== Socket — LEDs ========================
+# ======================== Socket : LEDs ========================
 
 @socketio.on('mode_bandeaux')
 def on_mode_bandeaux(data):
     """Change le mode de la barre haute des deux bandeaux.
 
-    mode — 0=eteint, 1=feux de position, 2=gyrophare
+    mode : 0=eteint, 1=feux de position, 2=gyrophare
     """
     mode = int(data.get("mode", 0))
     etat["mode_bandeaux"] = mode
@@ -366,7 +360,7 @@ def on_toggle_phares(data):
     socketio.emit("etat_phares", {"active": actif})
 
 
-# ======================== Socket — Sequences Blockly ========================
+# ======================== Socket : Sequences Blockly ========================
 
 @socketio.on('executer_sequence')
 def on_executer_sequence(data):
@@ -382,7 +376,7 @@ def on_executer_sequence(data):
     if not sequence:
         socketio.emit("sequence_status", {
             "etat": "erreur",
-            "description": "Sequence vide — ajoutez des blocs",
+            "description": "Sequence vide, ajoutez des blocs",
         })
         return
 

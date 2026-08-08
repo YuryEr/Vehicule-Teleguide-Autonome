@@ -1,5 +1,5 @@
 """
-TankETS — Point d'entree (MPU / Qualcomm Linux)
+TankETS : Point d'entree (MPU / Qualcomm Linux)
 """
 
 import subprocess
@@ -15,7 +15,7 @@ if requirements.exists():
             stdout=subprocess.DEVNULL
         )
     except Exception as e:
-        print(f"[main] Install pip ignoree ({e}) — "
+        print(f"[main] Install pip ignoree ({e}), "
               "dependances supposees deja presentes.")
 
 from serveur_web import demarrer_serveur

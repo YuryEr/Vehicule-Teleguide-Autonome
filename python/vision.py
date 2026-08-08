@@ -1,5 +1,5 @@
 """
-Module de vision — TankETS (MPU / Qualcomm Linux)
+Module de vision, TankETS (MPU / Qualcomm Linux)
 ==================================================
 Capture camera et fonctions de detection routiere.
 
@@ -256,7 +256,7 @@ def detecter_lignes(frame):
 
     Algorithme : seuillage adaptatif sur la ligne noire,
     calcul du centroide dans la region d'interet.
-    Reference : Adaptive Thresholding — OpenCV documentation
+    Reference : Adaptive Thresholding, OpenCV documentation
     https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html
     """
     h, w = frame.shape[:2]

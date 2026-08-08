@@ -10,7 +10,7 @@
  * MOTEUR EST APPLIQUEE LORS DE LA RECEPTION DE L'AXE Y.
  *
  * PARAMETRE :
- * x — VALEUR HORIZONTALE (-1.0 A 1.0, GAUCHE/DROITE)
+ * x : VALEUR HORIZONTALE (-1.0 A 1.0, GAUCHE/DROITE)
  *
  * RETOUR :
  * AUCUN
@@ -25,7 +25,7 @@ void Deplacement_JoystickX(float x);
  * ASSERVI EST EN COURS.
  *
  * PARAMETRE :
- * y — VALEUR VERTICALE (-1.0 A 1.0, ARRIERE/AVANT)
+ * y : VALEUR VERTICALE (-1.0 A 1.0, ARRIERE/AVANT)
  *
  * RETOUR :
  * AUCUN
@@ -41,8 +41,8 @@ void Deplacement_JoystickY(float y);
  * EST EN COURS.
  *
  * PARAMETRES :
- * gauche — VITESSE COTE GAUCHE (0 A 100)
- * droite — VITESSE COTE DROIT (0 A 100)
+ * gauche : VITESSE COTE GAUCHE (0 A 100)
+ * droite : VITESSE COTE DROIT (0 A 100)
  *
  * RETOUR :
  * AUCUN
@@ -57,7 +57,7 @@ void Deplacement_Roues(int gauche, int droite);
  * DISTANCE CIBLE OU APRES LE TIMEOUT DE SECURITE (12 S).
  *
  * PARAMETRE :
- * distance — DISTANCE EN METRES (TOUJOURS POSITIVE)
+ * distance : DISTANCE EN METRES (TOUJOURS POSITIVE)
  *
  * RETOUR :
  * 1 (MOUVEMENT DEMARRE)
@@ -71,7 +71,7 @@ int Deplacement_AvancerMetres(float distance);
  * LES ENCODEURS.
  *
  * PARAMETRE :
- * distance — DISTANCE EN METRES (TOUJOURS POSITIVE)
+ * distance : DISTANCE EN METRES (TOUJOURS POSITIVE)
  *
  * RETOUR :
  * 1 (MOUVEMENT DEMARRE)
@@ -86,7 +86,7 @@ int Deplacement_ReculerMetres(float distance);
  * A 10 DEG AVANT POUR COMPENSER L'INERTIE.
  *
  * PARAMETRE :
- * angle — ANGLE EN DEGRES (TOUJOURS POSITIF)
+ * angle : ANGLE EN DEGRES (TOUJOURS POSITIF)
  *
  * RETOUR :
  * 1 (MOUVEMENT DEMARRE)
@@ -100,7 +100,7 @@ int Deplacement_TournerGauche(float angle);
  * LE GYROSCOPE.
  *
  * PARAMETRE :
- * angle — ANGLE EN DEGRES (TOUJOURS POSITIF)
+ * angle : ANGLE EN DEGRES (TOUJOURS POSITIF)
  *
  * RETOUR :
  * 1 (MOUVEMENT DEMARRE)
