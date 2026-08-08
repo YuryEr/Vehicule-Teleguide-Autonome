@@ -263,10 +263,12 @@ def _tache_lignes():
     while _boucle_vision is None:
         socketio.sleep(0.2)
 
+    prochaine = time.time()
     while True:
         frame = derniere_frame
         if frame is None or not _capture_utile():
             socketio.sleep(PERIODE_LIGNES)
+            prochaine = time.time()
             continue
 
         try:
@@ -279,7 +281,16 @@ def _tache_lignes():
         if lignes is not None:
             _sur_lignes_detectees(*lignes)
 
-        socketio.sleep(PERIODE_LIGNES)
+        # Attente jusqu'a la prochaine echeance plutot que d'une duree fixe :
+        # dormir apres le travail ajouterait sa duree a la periode, et la
+        # cadence dependrait alors du temps de traitement. Si un cycle deborde,
+        # on repart de maintenant sans chercher a rattraper le retard.
+        prochaine += PERIODE_LIGNES
+        reste = prochaine - time.time()
+        if reste > 0:
+            socketio.sleep(reste)
+        else:
+            prochaine = time.time()
 
 # ======================== Socket — Connexion ========================
 
