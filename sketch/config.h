@@ -62,7 +62,18 @@
 // davantage que la rapidite sur un parcours.
 #define VITESSE_DEPLACEMENT   23
 #define VITESSE_ROTATION      11
-#define VITESSE_JOYSTICK      80
+
+// Pilotage manuel au joystick. Sensibilites separees : sur un chassis a
+// chenilles, la rotation fait patiner les deux cotes en sens opposes, c'est le
+// mouvement le plus brutal et le plus difficile a doser. Elle est donc
+// volontairement plus lente que la translation.
+// La reponse suit une courbe exponentielle, usage courant en modelisme :
+//   f(v) = EXPO * v^3 + (1 - EXPO) * v
+// Elle conserve f(0) = 0 et f(1) = 1, et n'ecrase que la pente au centre : a
+// 0.6, le neutre est 2.5 fois moins sensible, sans perte de vitesse maximale.
+#define VITESSE_MANUEL          80    // avance et recul, joystick a fond
+#define VITESSE_ROTATION_MANUEL 50    // rotation gauche et droite
+#define EXPO_MANUEL             0.6f  // 0 = lineaire, 1 = tres adouci au centre
 
 // Compensation de l'inertie de fin de rotation, valeurs retenues pour
 // VITESSE_ROTATION = 11. Toute modification de cette vitesse impose de les

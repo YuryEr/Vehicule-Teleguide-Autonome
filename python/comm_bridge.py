@@ -201,6 +201,12 @@ def notifier_feu(present, couleur, confiance):
 
 # ======================== Capteurs de distance ========================
 
+# Les fonctions qui suivent, jusqu'a la fin du fichier, n'ont pas d'appelant
+# dans le pilotage courant : la decision d'obstacle est prise cote MCU, au plus
+# pres des capteurs. Elles couvrent les RPC de diagnostic que le MCU enregistre
+# malgre tout, et servent a interroger l'etat des capteurs depuis une console
+# Python pendant la mise au point.
+
 def lire_ultrason_cm():
     """Distance frontale mesuree par le capteur ultrason HC-SR04.
 
