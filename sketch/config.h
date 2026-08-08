@@ -54,7 +54,7 @@
 // charge et la tension. Les valeurs retenues sont celles de l'exemple du
 // fabricant, 23 en translation et 20 en rotation sur place.
 #define VITESSE_DEPLACEMENT   23
-#define VITESSE_ROTATION      20
+#define VITESSE_ROTATION      12
 #define VITESSE_JOYSTICK      30
 
 // Compensation rotation
