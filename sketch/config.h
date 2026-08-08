@@ -183,6 +183,11 @@
 // Au-dela de 1.0 il repart en direction de la ligne et finit par la recroiser.
 #define EVITEMENT_FACTEUR_RETOUR    2.0f
 
+// Duree d'immobilisation entre deux etapes du contournement. La carte moteur
+// maintient sa derniere consigne tant qu'on ne lui en donne pas d'autre : sans
+// arret explicite, les etapes s'enchainent en roulant et se superposent.
+#define EVITEMENT_PAUSE_MS          400
+
 // Recul de chaque capteur par rapport au pare-choc avant (cm). Les mesures
 // sont ramenees a cette reference commune : sans cela, la fusion comparerait
 // deux distances prises depuis deux origines differentes. A mesurer sur la
