@@ -34,11 +34,15 @@ from boucle_vision import BoucleVision
 
 PORT_WEB = 7000
 
-# Resolution de capture. Sans consigne explicite, le pilote impose son mode par
-# defaut, souvent un recadrage qui ampute le champ de vision et se lit comme un
-# zoom. Un mode 16/9 conserve le champ complet du capteur.
-LARGEUR_CAPTURE = 1280
-HAUTEUR_CAPTURE = 720
+# Capture. Sans consigne explicite, le pilote impose son mode par defaut,
+# souvent un recadrage en 4/3 qui ampute le champ de vision et se lit comme un
+# zoom. Le capteur plafonne a 1280x720, mais n'y tient que 10 images par
+# seconde en YUYV : autant que la cadence du suivi de ligne, donc sans aucune
+# marge. Le mode 640x360 offre le meme champ, etant lui aussi en 16/9, pour
+# trente images par seconde et quatre fois moins de pixels a traiter.
+LARGEUR_CAPTURE = 640
+HAUTEUR_CAPTURE = 360
+CADENCE_CAPTURE = 30
 
 CHEMIN_ASSETS = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'assets'
@@ -89,14 +93,18 @@ def obtenir_camera():
         if cam.isOpened():
             cam.set(cv2.CAP_PROP_FRAME_WIDTH,  LARGEUR_CAPTURE)
             cam.set(cv2.CAP_PROP_FRAME_HEIGHT, HAUTEUR_CAPTURE)
+            cam.set(cv2.CAP_PROP_FPS,          CADENCE_CAPTURE)
 
             ret, _ = cam.read()
             if ret:
-                # La resolution est relue : une camera substitue silencieusement
-                # le mode le plus proche quand celui demande n'existe pas.
+                # Reglages relus : une camera substitue silencieusement le mode
+                # le plus proche quand celui demande n'existe pas, et la cadence
+                # depend de la resolution retenue.
                 largeur = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
                 hauteur = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
-                print(f"[camera] Trouvee sur index {i} en {largeur}x{hauteur}")
+                cadence = int(cam.get(cv2.CAP_PROP_FPS))
+                print(f"[camera] Trouvee sur index {i} "
+                      f"en {largeur}x{hauteur} a {cadence} fps")
                 camera = cam
                 index_camera = i
                 return camera
