@@ -45,7 +45,7 @@
 // Reglage : RATIO_nouveau = RATIO_actuel * (distance_commandee / mesuree),
 // mesure sur 2 m pour limiter le poids des transitoires.
 #define DIAMETRE_ROUE_MM      65.0
-#define RATIO_REDUCTEUR       45.0
+#define RATIO_REDUCTEUR       50.0  
 #define IMPULSIONS_PAR_TOUR   44.0
 #define IMPULSIONS_PAR_ROUE   (IMPULSIONS_PAR_TOUR * RATIO_REDUCTEUR)
 
@@ -58,6 +58,12 @@
 #define VITESSE_JOYSTICK      30
 
 // Compensation rotation
+// A REPRENDRE : la marge n'a pas ete recalibree depuis le passage de
+// VITESSE_ROTATION de 12 a 20, et les rotations depassent d'environ 15 degres.
+// Methode : commander 90 puis 180 degres. Un ecart constant designe l'inertie,
+// donc cette marge ; un ecart proportionnel designe SENSIBILITE_GYRO. Garder
+// ROT_MARGE_LENTE_DEG nettement au-dessus, sans quoi la phase d'approche lente
+// n'a plus lieu avant l'arret.
 #define ROT_MARGE_ARRET_DEG   10.0
 #define ROT_MARGE_LENTE_DEG   20.0
 
@@ -73,8 +79,13 @@
 // successives : AVANCE_TRIM_NUM sur AVANCE_TRIM_DEN d'entre elles la portent,
 // soit un decalage effectif de NUM/DEN d'unite.
 // Signe positif pour accelerer la chenille gauche, negatif pour la droite.
-#define AVANCE_TRIM_NUM       0     // de -AVANCE_TRIM_DEN a +AVANCE_TRIM_DEN
-#define AVANCE_TRIM_DEN       8
+// Valeurs relevees sur 1 m : la derive residuelle y est nulle. Sur 2 m le
+// vehicule decrit une legere courbe en S, signe qu'un transitoire de demarrage
+// s'ajoute a la derive etablie. Une constante ne peut annuler leur somme qu'a
+// une seule distance : regler a la distance reellement utilisee, ou composer
+// les longs trajets avec plusieurs blocs de la distance calibree.
+#define AVANCE_TRIM_NUM       8     // de -AVANCE_TRIM_DEN a +AVANCE_TRIM_DEN
+#define AVANCE_TRIM_DEN       16
 
 
 // Timeouts securite (ms)
