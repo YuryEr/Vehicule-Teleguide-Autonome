@@ -27,7 +27,7 @@ from flask_socketio import SocketIO
 import comm_bridge
 import navigation
 import vision as module_vision
-from boucle_vision import BoucleVision
+from boucle_vision import BoucleVision, PERIODE_LIGNES, PERIODE_INFERENCE
 
 
 # ======================== Configuration ========================
@@ -214,40 +214,72 @@ def _sur_lignes_detectees(detecte, ecart):
         eventlet.tpool.execute(_notifier_lignes_mcu, detecte, ecart)
 
 
-def _tache_vision():
+_boucle_vision = None
+
+
+def _tache_feux():
+    """Charge le modele, puis fait tourner l'inference a sa propre cadence."""
+    global _boucle_vision
     try:
         module_vision.initialiser_modele()
     except Exception as e:
         print(f"[vision] Modele non charge : {e}")
         return
 
-    bv = BoucleVision()
+    _boucle_vision = BoucleVision()
     print("[vision] Pipeline de detection active")
 
     while True:
         frame = derniere_frame
         if frame is None or not _capture_utile():
-            socketio.sleep(0.05)
+            socketio.sleep(PERIODE_INFERENCE)
             continue
 
         try:
-            # Seul le calcul part dans le pool. Les notifications reviennent
-            # ici, dans la greenlet, avant d'etre diffusees : emettre sur une
-            # socket eventlet ou appeler le Bridge depuis un thread natif
-            # corrompt leur etat, ce qui deconnecte le navigateur et brouille
-            # les trames RPC.
-            notifications = eventlet.tpool.execute(bv.traiter, frame)
+            # Seul le calcul part dans le pool. La notification revient ici,
+            # dans la greenlet, avant d'etre diffusee : emettre sur une socket
+            # eventlet ou appeler le Bridge depuis un thread natif corrompt
+            # leur etat, ce qui deconnecte le navigateur et brouille les
+            # trames RPC.
+            feu = eventlet.tpool.execute(_boucle_vision.traiter_feux, frame)
         except Exception as e:
-            print(f"[vision] erreur frame ignoree : {e}")
-            socketio.sleep(0.05)
+            print(f"[vision] feu ignore : {e}")
+            feu = None
+
+        if feu is not None:
+            _sur_changement_feu(*feu)
+
+        socketio.sleep(PERIODE_INFERENCE)
+
+
+def _tache_lignes():
+    """Detection de ligne, a cadence propre.
+
+    Elle pilote le suivi et ne doit donc jamais attendre l'inference des feux,
+    cent fois plus lente. Partager une meme boucle asservirait la cadence de
+    correction du vehicule au cout de la vision : ajouter une fenetre
+    d'inference suffirait a degrader sa trajectoire.
+    """
+    while _boucle_vision is None:
+        socketio.sleep(0.2)
+
+    while True:
+        frame = derniere_frame
+        if frame is None or not _capture_utile():
+            socketio.sleep(PERIODE_LIGNES)
             continue
 
-        if "lignes" in notifications:
-            _sur_lignes_detectees(*notifications["lignes"])
-        if "feu" in notifications:
-            _sur_changement_feu(*notifications["feu"])
+        try:
+            lignes = eventlet.tpool.execute(_boucle_vision.traiter_lignes,
+                                            frame)
+        except Exception as e:
+            print(f"[vision] ligne ignoree : {e}")
+            lignes = None
 
-        socketio.sleep(0.05)
+        if lignes is not None:
+            _sur_lignes_detectees(*lignes)
+
+        socketio.sleep(PERIODE_LIGNES)
 
 # ======================== Socket — Connexion ========================
 
@@ -508,5 +540,6 @@ def demarrer_serveur():
     """Lance le serveur web. Bloquant."""
     print(f"[web] Serveur demarre sur http://0.0.0.0:{PORT_WEB}")
     socketio.start_background_task(_tache_capture)
-    socketio.start_background_task(_tache_vision)
+    socketio.start_background_task(_tache_feux)
+    socketio.start_background_task(_tache_lignes)
     socketio.run(app, host='0.0.0.0', port=PORT_WEB, debug=False)

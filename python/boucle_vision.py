@@ -1,12 +1,18 @@
 """
 Pipeline de vision — TankETS
 =============================
-Orchestre les detections a cadences independantes avec anti-rebond.
+Detections routieres avec anti-rebond.
 
-Cette classe s'execute dans un thread du pool, ou toucher aux sockets
-eventlet ou au Bridge corromprait leur etat. Elle ne diffuse donc rien
-elle-meme : `traiter()` retourne les notifications a emettre, et c'est
-l'appelant, dans sa greenlet, qui les dispatche.
+Les deux traitements sont exposes separement et n'ont aucune cadence propre :
+c'est l'appelant qui les appelle a son rythme. Les partager dans un meme appel
+asservirait le suivi de ligne, qui coute quelques millisecondes et pilote le
+vehicule, a l'inference des feux, qui coute plusieurs centaines de
+millisecondes. La cadence de correction dependrait alors du cout de la vision.
+
+Cette classe s'execute dans un thread du pool, ou toucher aux sockets eventlet
+ou au Bridge corromprait leur etat. Elle ne diffuse donc rien elle-meme : elle
+retourne ce qu'il y a a emettre, et c'est l'appelant, dans sa greenlet, qui le
+dispatche.
 """
 
 import time
@@ -34,9 +40,6 @@ class BoucleVision:
         self._derniere_couleur = vision.COULEUR_AUCUNE
         self._dernier_envoi    = 0.0
 
-        self._t_inference = 0.0
-        self._t_lignes    = 0.0
-
         self._fps_t0 = time.time()
         self._fps_n  = 0
 
@@ -48,40 +51,21 @@ class BoucleVision:
     def derniere_couleur(self):
         return self._derniere_couleur
 
-    def traiter(self, frame):
-        """Traite une frame et retourne les notifications a diffuser.
+    def traiter_lignes(self, frame):
+        """Detecte la ligne et retourne (detecte, ecart).
 
-        Retourne un dictionnaire pouvant contenir :
-            "lignes" — (detecte, ecart)
-            "feu"    — (present, couleur, confiance_pourcent)
-        Une cle absente signifie qu'il n'y a rien a diffuser pour ce sujet.
+        Cadence pilotee par l'appelant : elle ne doit dependre que de la
+        boucle de suivi, jamais du cout de l'inference.
         """
-        now = time.time()
-        notifications = {}
-
-        lignes = self._traiter_lignes(frame, now)
-        if lignes is not None:
-            notifications["lignes"] = lignes
-
-        feu = self._traiter_feux(frame, now)
-        if feu is not None:
-            notifications["feu"] = feu
-
-        self._traiter_telemetrie(now)
-        return notifications
-
-    def _traiter_lignes(self, frame, now):
-        if now - self._t_lignes < PERIODE_LIGNES:
-            return None
-        self._t_lignes = now
-
+        self._compter_cadence()
         return vision.detecter_lignes(frame)
 
-    def _traiter_feux(self, frame, now):
-        if now - self._t_inference < PERIODE_INFERENCE:
-            return None
-        self._t_inference = now
+    def traiter_feux(self, frame):
+        """Detecte les feux.
 
+        Retourne (present, couleur, confiance_pourcent) quand l'etat du feu
+        change, None sinon. Cadence pilotee par l'appelant.
+        """
         detections = vision.detecter_feux(frame)
         nombre    = len(detections)
         confiance = 0.0
@@ -103,7 +87,7 @@ class BoucleVision:
             self._misses += 1
             self._hits    = 0
 
-        return self._evaluer_etat_feu(couleur, confiance, now)
+        return self._evaluer_etat_feu(couleur, confiance, time.time())
 
     def _evaluer_etat_feu(self, couleur, confiance, now):
         """Retourne la notification a diffuser, ou None si rien n'a change."""
@@ -134,13 +118,19 @@ class BoucleVision:
 
         return None
 
-    def _traiter_telemetrie(self, now):
+    def _compter_cadence(self):
+        """Trace la cadence reelle du suivi de ligne.
+
+        C'est le nombre de corrections que le vehicule applique par seconde :
+        la grandeur qui conditionne le reglage du correcteur.
+        """
         self._fps_n += 1
+        now = time.time()
         if now - self._fps_t0 < 5.0:
             return
-        fps = self._fps_n / (now - self._fps_t0)
+        cadence = self._fps_n / (now - self._fps_t0)
         print(
-            f"[perf] {fps:.1f} FPS | "
+            f"[perf] lignes {cadence:.1f} Hz | "
             f"feu={self._feu_present} "
             f"couleur={vision.NOMS_COULEURS[self._derniere_couleur]}"
         )
