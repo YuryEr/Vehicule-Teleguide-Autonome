@@ -345,6 +345,43 @@ RPC dans l'autre sens (MCU recoit du MPU) : `on_feu(bool, int, int)`, `on_lignes
 des valeurs positives — le sens est gere par des fonctions dediees cote MCU (c'est
 pourquoi `roues` prend deux vitesses positives plutot qu'un differentiel signe).
 
+## Detection des feux de signalisation
+
+L'entree du modele YOLOv8n exporte en ONNX est **figee a 256 pixels de cote**.
+Redimensionner l'image entiere pour l'y faire tenir divise la largeur apparente
+des objets par plus de deux : un feu de 6 cm vu a 1 m passe d'environ 33 pixels
+a 13, en dessous de ce que le modele detecte de facon fiable. C'est pourquoi le
+feu n'etait vu qu'au dernier moment.
+
+Le modele recoit donc des **fenetres prelevees a la resolution native** plutot
+que l'image comprimee. Deux fenetres, aux bords gauche et droit : le feu borde
+la chaussee et n'apparait jamais au centre du champ.
+
+    image 640x360
+    +---------------+-------+---------------+
+    |   fenetre     |       |    fenetre    |
+    |   GAUCHE      |       |    DROITE     |  256x256, resolution native
+    |   256x256     |       |    256x256    |  soumises au modele
+    |               |       |               |
+    +---------------+-------+---------------+
+    |   ROI du suivi de ligne (40 % du bas) |  seuillage adaptatif + centroide
+    +---------------------------------------+
+
+Le feu conserve sa taille reelle, ce qui **double environ la portee de
+detection** sans reexporter le modele. La bande centrale n'est pas analysee,
+ce qui est sans consequence pour un feu de bord de voie.
+
+Les deux fenetres impliquent **deux inferences par cycle**. Si la charge du MPU
+devient genante, augmenter `PERIODE_INFERENCE` dans `boucle_vision.py` : un feu
+est immobile, sa detection ne demande pas une cadence elevee.
+
+| Constante | Fichier | Role |
+|---|---|---|
+| `TAILLE_INFERENCE` | `vision.py` | Cote de la fenetre. **Doit correspondre a l'`imgsz` d'export du modele** |
+| `SEUIL_CONFIANCE` | `vision.py` | Un feu lointain sort avec une confiance plus basse |
+| `REBOND_ACTIVATION` | `boucle_vision.py` | Detections consecutives avant de signaler un feu |
+| `PERIODE_INFERENCE` | `boucle_vision.py` | Cadence des inferences |
+
 ## Suivi de ligne autonome
 
 Le module `python/navigation.py` implemente un correcteur **proportionnel-derive** :

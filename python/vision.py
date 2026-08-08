@@ -37,6 +37,8 @@ Code adapte de : YOLO Live Object Detection (Arduino App Lab, 2025)
 API publique :
     initialiser_modele()            Charge YOLOv8n ONNX
     detecter_feux(frame)            -> [(x1, y1, x2, y2, confiance)]
+                                       deux fenetres a resolution native,
+                                       voir _fenetres_inference
     classifier_couleur_feu(crop)    -> COULEUR_*
     detecter_lignes(frame)          -> (detecte, ecart_px)
 """
@@ -145,41 +147,83 @@ def _nms(boites, scores, seuil_iou):
     return gardes
 
 
+def _fenetres_inference(frame):
+    """Prepare les fenetres soumises au modele et leur position dans l'image.
+
+    L'entree du modele ONNX est figee a TAILLE_INFERENCE pixels de cote.
+    Redimensionner l'image entiere pour l'y faire tenir divise la largeur
+    apparente des objets par plus de deux, ce qui rend les feux lointains
+    indetectables : un feu de six centimetres vu a un metre passe d'environ
+    trente-trois pixels a treize.
+
+    On preleve donc des fenetres a la resolution native, dans le haut de
+    l'image ou se trouve un feu de signalisation. Deux fenetres, aux bords
+    gauche et droit, car le feu borde la chaussee et n'apparait jamais au
+    centre du champ. Le redimensionnement ne sert plus que de repli, quand
+    l'image est plus petite que la fenetre.
+
+    Retourne une liste de (fenetre, x0, y0, sx, sy), telle que la coordonnee
+    dans l'image d'origine vaut coordonnee_modele * s + origine.
+    """
+    h, w = frame.shape[:2]
+
+    if w < TAILLE_INFERENCE or h < TAILLE_INFERENCE:
+        return [(cv2.resize(frame, (TAILLE_INFERENCE, TAILLE_INFERENCE)),
+                 0, 0, w / TAILLE_INFERENCE, h / TAILLE_INFERENCE)]
+
+    return [
+        (frame[0:TAILLE_INFERENCE, 0:TAILLE_INFERENCE],
+         0, 0, 1.0, 1.0),
+        (frame[0:TAILLE_INFERENCE, w - TAILLE_INFERENCE:w],
+         w - TAILLE_INFERENCE, 0, 1.0, 1.0),
+    ]
+
+
 def detecter_feux(frame):
     """Retourne [(x1, y1, x2, y2, confiance)] pour chaque feu detecte."""
     if _session is None:
         raise RuntimeError("Appeler initialiser_modele() d'abord.")
 
     h, w = frame.shape[:2]
-    image = cv2.resize(frame, (TAILLE_INFERENCE, TAILLE_INFERENCE))
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
-    blob  = np.transpose(image, (2, 0, 1))[None]
+    boites = []
+    scores = []
 
-    sortie = np.squeeze(
-        _session.run(None, {_nom_entree: blob})[0]
-    )
+    for fenetre, x0, y0, sx, sy in _fenetres_inference(frame):
+        image = cv2.cvtColor(fenetre, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+        blob  = np.transpose(image, (2, 0, 1))[None]
 
-    confiances = sortie[_LIGNE_FEU, :]
-    masque = confiances >= SEUIL_CONFIANCE
-    if not np.any(masque):
+        sortie = np.squeeze(
+            _session.run(None, {_nom_entree: blob})[0]
+        )
+
+        confiances = sortie[_LIGNE_FEU, :]
+        masque = confiances >= SEUIL_CONFIANCE
+        if not np.any(masque):
+            continue
+
+        brutes = sortie[:4, masque]
+        cx, cy, bw, bh = brutes[0], brutes[1], brutes[2], brutes[3]
+        boites.append(np.stack([
+            (cx - bw / 2) * sx + x0, (cy - bh / 2) * sy + y0,
+            (cx + bw / 2) * sx + x0, (cy + bh / 2) * sy + y0
+        ], axis=1))
+        scores.append(confiances[masque])
+
+    if not boites:
         return []
 
-    confiances = confiances[masque]
-    brutes = sortie[:4, masque]
-    sx, sy = w / TAILLE_INFERENCE, h / TAILLE_INFERENCE
-    cx, cy, bw, bh = brutes[0], brutes[1], brutes[2], brutes[3]
-    xyxy = np.stack([
-        (cx - bw / 2) * sx, (cy - bh / 2) * sy,
-        (cx + bw / 2) * sx, (cy + bh / 2) * sy
-    ], axis=1)
+    # Les deux fenetres se chevauchent parfois : la suppression des maxima
+    # locaux est appliquee sur leur union, pas fenetre par fenetre.
+    boites = np.concatenate(boites, axis=0)
+    scores = np.concatenate(scores, axis=0)
 
     detections = []
-    for i in _nms(xyxy, confiances, SEUIL_NMS):
-        x1, y1, x2, y2 = xyxy[i]
+    for i in _nms(boites, scores, SEUIL_NMS):
+        x1, y1, x2, y2 = boites[i]
         detections.append((
             max(int(x1), 0),  max(int(y1), 0),
             min(int(x2), w),  min(int(y2), h),
-            float(confiances[i])
+            float(scores[i])
         ))
     return detections
 
