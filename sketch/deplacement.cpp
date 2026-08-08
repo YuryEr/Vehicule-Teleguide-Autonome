@@ -85,11 +85,6 @@ static void consignesAvance(int sens, int *gauche, int *droite) {
 // ======================== Demarrage mouvements ========================
 
 static void demarrerAvance(float distance_m, int sens) {
-    // Le vehicule est immobile a cet instant : le zero du gyroscope est
-    // reetabli pour repartir sans la derive thermique accumulee depuis le
-    // demarrage.
-    Imu_CalibrerRapide();
-
     encodeurDepart  = Moteurs_LireEncodeurGauche();
     distanceCible   = fabs(distance_m);
     sensAvance      = sens;
