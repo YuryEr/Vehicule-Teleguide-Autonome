@@ -54,8 +54,8 @@
 // charge et la tension. Les valeurs retenues sont celles de l'exemple du
 // fabricant, 23 en translation et 20 en rotation sur place.
 #define VITESSE_DEPLACEMENT   23
-#define VITESSE_ROTATION      20
-#define VITESSE_JOYSTICK      30
+#define VITESSE_ROTATION      11
+#define VITESSE_JOYSTICK      80
 
 // Compensation rotation
 // A REPRENDRE : la marge n'a pas ete recalibree depuis le passage de
@@ -166,7 +166,7 @@
 #define OBSTACLE_SEUIL_CM           40    // en deca : obstacle signale
 #define OBSTACLE_PERIODE_MS         50    // reevaluation de la distance frontale
 #define OBSTACLE_ECART_SONDAGE_DEG  45    // ecart des secteurs lateraux (deg)
-#define OBSTACLE_SENS_SERVO         1     // -1 si gauche et droite sont inverses
+#define OBSTACLE_SENS_SERVO         -1     // -1 si gauche et droite sont inverses
 #define OBSTACLE_STABILISATION_MS   40    // attente apres arrivee, avant la mesure
 
 // Feux de signalisation (donnees fournies par la vision du MPU)

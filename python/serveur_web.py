@@ -34,6 +34,12 @@ from boucle_vision import BoucleVision
 
 PORT_WEB = 7000
 
+# Resolution de capture. Sans consigne explicite, le pilote impose son mode par
+# defaut, souvent un recadrage qui ampute le champ de vision et se lit comme un
+# zoom. Un mode 16/9 conserve le champ complet du capteur.
+LARGEUR_CAPTURE = 1280
+HAUTEUR_CAPTURE = 720
+
 CHEMIN_ASSETS = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'assets'
 )
@@ -81,9 +87,16 @@ def obtenir_camera():
     for i in range(10):
         cam = cv2.VideoCapture(i)
         if cam.isOpened():
+            cam.set(cv2.CAP_PROP_FRAME_WIDTH,  LARGEUR_CAPTURE)
+            cam.set(cv2.CAP_PROP_FRAME_HEIGHT, HAUTEUR_CAPTURE)
+
             ret, _ = cam.read()
             if ret:
-                print(f"[camera] Trouvee sur index {i}")
+                # La resolution est relue : une camera substitue silencieusement
+                # le mode le plus proche quand celui demande n'existe pas.
+                largeur = int(cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+                hauteur = int(cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+                print(f"[camera] Trouvee sur index {i} en {largeur}x{hauteur}")
                 camera = cam
                 index_camera = i
                 return camera
