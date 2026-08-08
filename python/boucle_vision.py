@@ -2,7 +2,11 @@
 Pipeline de vision — TankETS
 =============================
 Orchestre les detections a cadences independantes avec anti-rebond.
-Decouple : recoit des callbacks, ne connait pas Bridge.
+
+Cette classe s'execute dans un thread du pool, ou toucher aux sockets
+eventlet ou au Bridge corromprait leur etat. Elle ne diffuse donc rien
+elle-meme : `traiter()` retourne les notifications a emettre, et c'est
+l'appelant, dans sa greenlet, qui les dispatche.
 """
 
 import time
@@ -21,17 +25,9 @@ RAFRAICHISSEMENT_S       = 0.5
 # ======================== Classe principale ========================
 
 class BoucleVision:
-    """Machine a etats pour la detection routiere.
+    """Machine a etats pour la detection routiere."""
 
-    sur_changement_feu(present, couleur, confiance) — appele quand
-        l'etat du feu change (apparition, disparition, changement couleur).
-    sur_lignes_detectees(detecte, ecart) — appele a chaque cycle lignes.
-    """
-
-    def __init__(self, sur_changement_feu, sur_lignes_detectees):
-        self._sur_feu    = sur_changement_feu
-        self._sur_lignes = sur_lignes_detectees
-
+    def __init__(self):
         self._hits             = 0
         self._misses           = 0
         self._feu_present      = False
@@ -53,24 +49,37 @@ class BoucleVision:
         return self._derniere_couleur
 
     def traiter(self, frame):
-        """Traite une frame. Appeler a chaque iteration de la boucle."""
-        now = time.time()
+        """Traite une frame et retourne les notifications a diffuser.
 
-        self._traiter_lignes(frame, now)
-        self._traiter_feux(frame, now)
+        Retourne un dictionnaire pouvant contenir :
+            "lignes" — (detecte, ecart)
+            "feu"    — (present, couleur, confiance_pourcent)
+        Une cle absente signifie qu'il n'y a rien a diffuser pour ce sujet.
+        """
+        now = time.time()
+        notifications = {}
+
+        lignes = self._traiter_lignes(frame, now)
+        if lignes is not None:
+            notifications["lignes"] = lignes
+
+        feu = self._traiter_feux(frame, now)
+        if feu is not None:
+            notifications["feu"] = feu
+
         self._traiter_telemetrie(now)
+        return notifications
 
     def _traiter_lignes(self, frame, now):
         if now - self._t_lignes < PERIODE_LIGNES:
-            return
+            return None
         self._t_lignes = now
 
-        detecte, ecart = vision.detecter_lignes(frame)
-        self._sur_lignes(detecte, ecart)
+        return vision.detecter_lignes(frame)
 
     def _traiter_feux(self, frame, now):
         if now - self._t_inference < PERIODE_INFERENCE:
-            return
+            return None
         self._t_inference = now
 
         detections = vision.detecter_feux(frame)
@@ -94,33 +103,36 @@ class BoucleVision:
             self._misses += 1
             self._hits    = 0
 
-        self._evaluer_etat_feu(couleur, confiance, now)
+        return self._evaluer_etat_feu(couleur, confiance, now)
 
     def _evaluer_etat_feu(self, couleur, confiance, now):
+        """Retourne la notification a diffuser, ou None si rien n'a change."""
         if not self._feu_present and self._hits >= REBOND_ACTIVATION:
             self._feu_present      = True
             self._derniere_couleur = couleur
-            self._sur_feu(True, couleur, int(confiance * 100))
-            self._dernier_envoi = now
+            self._dernier_envoi    = now
             print(f"[feu] DETECTE "
                   f"{vision.NOMS_COULEURS[couleur]} "
                   f"({confiance:.2f})")
+            return (True, couleur, int(confiance * 100))
 
-        elif (self._feu_present
-              and self._misses >= REBOND_DESACTIVATION):
+        if (self._feu_present
+                and self._misses >= REBOND_DESACTIVATION):
             self._feu_present      = False
             self._derniere_couleur = vision.COULEUR_AUCUNE
-            self._sur_feu(False, vision.COULEUR_AUCUNE, 0)
-            self._dernier_envoi = now
+            self._dernier_envoi    = now
             print("[feu] perdu")
+            return (False, vision.COULEUR_AUCUNE, 0)
 
-        elif (self._feu_present
-              and self._hits > 0
-              and (couleur != self._derniere_couleur
-                   or now - self._dernier_envoi >= RAFRAICHISSEMENT_S)):
+        if (self._feu_present
+                and self._hits > 0
+                and (couleur != self._derniere_couleur
+                     or now - self._dernier_envoi >= RAFRAICHISSEMENT_S)):
             self._derniere_couleur = couleur
-            self._sur_feu(True, couleur, int(confiance * 100))
-            self._dernier_envoi = now
+            self._dernier_envoi    = now
+            return (True, couleur, int(confiance * 100))
+
+        return None
 
     def _traiter_telemetrie(self, now):
         self._fps_n += 1

@@ -44,6 +44,10 @@ LARGEUR_CAPTURE = 640
 HAUTEUR_CAPTURE = 360
 CADENCE_CAPTURE = 30
 
+# Cadence maximale du flux vers le navigateur, alignee sur la camera : encoder
+# plus vite ne produirait que des doublons.
+PERIODE_FLUX = 1.0 / CADENCE_CAPTURE
+
 CHEMIN_ASSETS = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'assets'
 )
@@ -113,12 +117,20 @@ def obtenir_camera():
     print("[camera] Aucune camera detectee")
     return None
 
+def _capture_utile():
+    """Indique s'il vaut la peine de capturer et de traiter des images.
+
+    Une sequence Blockly monopolise le Bridge, et une camera coupee n'a aucun
+    consommateur : dans les deux cas, capturer reviendrait a decoder et encoder
+    des images que personne ne regarde.
+    """
+    return (not sequence_en_cours) and etat["camera_active"]
+
+
 def _tache_capture():
     global derniere_frame, camera
     while True:
-        # Pendant une sequence, on libere le CPU/tpool pour le Bridge :
-        # la video se fige quelques secondes, sans consequence.
-        if sequence_en_cours:
+        if not _capture_utile():
             socketio.sleep(0.1)
             continue
         cam = obtenir_camera()
@@ -135,14 +147,22 @@ def _tache_capture():
 
 
 def generer_flux():
+    derniere_envoyee = None
     while True:
-        if sequence_en_cours:
+        if not _capture_utile():
             socketio.sleep(0.2)
             continue
+
         frame = derniere_frame
-        if frame is None:
-            socketio.sleep(0.1)
+        # Ne re-encoder que sur image nouvelle, et jamais plus vite que la
+        # camera ne produit. Sans ces deux gardes, la boucle re-encode la meme
+        # image aussi vite que le processeur le permet, ce qui sature le lien
+        # WiFi et monopolise les threads du pool au detriment de la vision.
+        if frame is None or frame is derniere_envoyee:
+            socketio.sleep(PERIODE_FLUX)
             continue
+        derniere_envoyee = frame
+
         _, jpeg = eventlet.tpool.execute(
             cv2.imencode, '.jpg', frame,
             [cv2.IMWRITE_JPEG_QUALITY, 60]
@@ -150,7 +170,7 @@ def generer_flux():
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n'
                + jpeg.tobytes() + b'\r\n')
-        socketio.sleep(0)
+        socketio.sleep(PERIODE_FLUX)
 
 
 @app.route('/video')
@@ -159,27 +179,39 @@ def flux_video():
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
 
+def _notifier_lignes_mcu(detecte, ecart):
+    """Regroupe les echanges MCU d'un cycle de ligne en un seul aller-retour."""
+    comm_bridge.notifier_lignes(detecte, ecart)
+    navigation.traiter_lignes(detecte, ecart)
+
+
 def _sur_changement_feu(present, couleur, confiance):
+    """Diffuse un changement d'etat du feu. Appele depuis la greenlet."""
     nom = module_vision.NOMS_COULEURS.get(couleur, "AUCUNE")
     socketio.emit('etat_feu', {
         'present': present,
         'couleur': nom,
         'confiance': confiance,
     })
-    # Pendant une sequence Blockly, on ne notifie PAS le MCU : deux sources
-    # RPC simultanees (vision + sequence) corrompent la trame du Bridge.
     if not sequence_en_cours:
-        comm_bridge.notifier_feu(present, couleur, confiance)
+        eventlet.tpool.execute(comm_bridge.notifier_feu,
+                               present, couleur, confiance)
 
 
 def _sur_lignes_detectees(detecte, ecart):
+    """Diffuse un cycle de detection de ligne. Appele depuis la greenlet.
+
+    L'emission se fait ici meme, la ou vit la boucle d'evenements. Les echanges
+    avec le MCU partent en revanche dans le pool : ils bloquent le temps d'un
+    aller-retour RPC, ce qui figerait la boucle. Le verrou de comm_bridge
+    serialise les appelants concurrents.
+    """
     socketio.emit('etat_lignes', {
         'detecte': detecte,
         'ecart': ecart,
     })
     if not sequence_en_cours:
-        comm_bridge.notifier_lignes(detecte, ecart)
-        navigation.traiter_lignes(detecte, ecart)
+        eventlet.tpool.execute(_notifier_lignes_mcu, detecte, ecart)
 
 
 def _tache_vision():
@@ -189,19 +221,32 @@ def _tache_vision():
         print(f"[vision] Modele non charge : {e}")
         return
 
-    bv = BoucleVision(_sur_changement_feu, _sur_lignes_detectees)
+    bv = BoucleVision()
     print("[vision] Pipeline de detection active")
 
     while True:
-        # Pendant une sequence Blockly, on suspend TOTALEMENT la vision :
-        # sinon YOLO/OpenCV saturent le CPU et affament le thread de lecture
-        # du Bridge -> buffer serie qui deborde -> trame RPC corrompue.
         frame = derniere_frame
-        if frame is not None and not sequence_en_cours:
-            try:
-                eventlet.tpool.execute(bv.traiter, frame)
-            except Exception as e:
-                print(f"[vision] erreur frame ignoree : {e}")
+        if frame is None or not _capture_utile():
+            socketio.sleep(0.05)
+            continue
+
+        try:
+            # Seul le calcul part dans le pool. Les notifications reviennent
+            # ici, dans la greenlet, avant d'etre diffusees : emettre sur une
+            # socket eventlet ou appeler le Bridge depuis un thread natif
+            # corrompt leur etat, ce qui deconnecte le navigateur et brouille
+            # les trames RPC.
+            notifications = eventlet.tpool.execute(bv.traiter, frame)
+        except Exception as e:
+            print(f"[vision] erreur frame ignoree : {e}")
+            socketio.sleep(0.05)
+            continue
+
+        if "lignes" in notifications:
+            _sur_lignes_detectees(*notifications["lignes"])
+        if "feu" in notifications:
+            _sur_changement_feu(*notifications["feu"])
+
         socketio.sleep(0.05)
 
 # ======================== Socket — Connexion ========================

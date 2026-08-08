@@ -26,14 +26,24 @@ Toutes les valeurs envoyees au MCU sont positives — le sens est
 gere par des fonctions dediees cote MCU.
 """
 
+import threading
+
 
 # ======================== Appels generiques ========================
+
+# Le transport RPC n'admet qu'un echange a la fois. Or les appelants ne sont
+# pas tous dans la meme greenlet : la vision, le sequenceur de blocs et les
+# gestionnaires d'evenements peuvent solliciter le Bridge simultanement, et
+# deux trames qui se chevauchent arrivent corrompues au MCU.
+_verrou = threading.Lock()
+
 
 def _appeler(nom, *args):
     """Appel Bridge securise. Retourne True si succes, False sinon."""
     try:
         from arduino.app_utils import Bridge
-        Bridge.call(nom, *args)
+        with _verrou:
+            Bridge.call(nom, *args)
         return True
     except Exception as e:
         print(f"[bridge] {nom} echec : {e}")
@@ -44,7 +54,8 @@ def _appeler_avec_retour(nom, *args):
     """Appel Bridge qui retourne la valeur du MCU, ou None si echec."""
     try:
         from arduino.app_utils import Bridge
-        return Bridge.call(nom, *args)
+        with _verrou:
+            return Bridge.call(nom, *args)
     except Exception as e:
         print(f"[bridge] {nom} echec : {e}")
         return None
