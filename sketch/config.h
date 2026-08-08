@@ -176,6 +176,13 @@
 #define EVITEMENT_DISTANCE_M        0.30  // longement le long de l'obstacle (m)
 #define EVITEMENT_ESSAIS_MAX        3     // rotations avant d'abandonner
 
+// Rapport entre la rotation de retour et celle de l'aller. A 1.0 le vehicule
+// retrouve son cap initial mais reste decale lateralement de la distance de
+// longement multipliee par le sinus de l'angle d'aller : il roule parallelement
+// a la ligne sans jamais la revoir, et le suivi s'arrete apres MISS_MAX cycles.
+// Au-dela de 1.0 il repart en direction de la ligne et finit par la recroiser.
+#define EVITEMENT_FACTEUR_RETOUR    2.0f
+
 // Recul de chaque capteur par rapport au pare-choc avant (cm). Les mesures
 // sont ramenees a cette reference commune : sans cela, la fusion comparerait
 // deux distances prises depuis deux origines differentes. A mesurer sur la

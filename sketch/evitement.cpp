@@ -31,9 +31,13 @@ static void tournerVersCote(int angle) {
     angleTourne += angle;
 }
 
+// Le retour depasse volontairement l'aller : rendre exactement l'angle parcouru
+// laisserait le vehicule parallele a la ligne, decale pour toujours. Le
+// depassement le renvoie vers elle.
 static void tournerRetour(void) {
-    if (coteChoisi == SECTEUR_GAUCHE) Deplacement_TournerDroite(angleTourne);
-    else                              Deplacement_TournerGauche(angleTourne);
+    int angle = (int)(angleTourne * EVITEMENT_FACTEUR_RETOUR);
+    if (coteChoisi == SECTEUR_GAUCHE) Deplacement_TournerDroite(angle);
+    else                              Deplacement_TournerGauche(angle);
 }
 
 static void terminer(void) {
