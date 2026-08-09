@@ -30,11 +30,24 @@ static volatile float joystickX = 0.0f;
 
 void Deplacement_JoystickX(float x) { joystickX = x; }
 
+// Adoucit la reponse autour du neutre sans reduire la pleine echelle.
+// v va de -1 a 1, le retour aussi.
+static float courbeExpo(float v) {
+    return EXPO_MANUEL * v * v * v + (1.0f - EXPO_MANUEL) * v;
+}
+
 void Deplacement_JoystickY(float y) {
     if (etatMouvement != INACTIF || Securite_ManoeuvreEnCours()) return;
-    int gauche = (int)((y - joystickX) * VITESSE_JOYSTICK);
-    int droite = (int)((y + joystickX) * VITESSE_JOYSTICK);
-    Securite_DefinirVitesse(gauche, droite);
+
+    // L'interface borne la poignee a un cercle : x et y ne peuvent pas valoir 1
+    // simultanement. La somme des deux consignes reste donc sous 100 et
+    // Moteurs_DefinirVitesse n'ecrete jamais, ce qui garde le rayon de virage
+    // constant quels que soient les gaz.
+    float avance   = courbeExpo(y)         * VITESSE_MANUEL;
+    float rotation = courbeExpo(joystickX) * VITESSE_ROTATION_MANUEL;
+
+    Securite_DefinirVitesse((int)(avance - rotation),
+                            (int)(avance + rotation));
 }
 
 void Deplacement_Roues(int gauche, int droite) {

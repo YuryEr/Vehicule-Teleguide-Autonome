@@ -40,30 +40,51 @@
 // Calibration mecanique. DIAMETRE_ROUE_MM et RATIO_REDUCTEUR n'interviennent
 // que par leur produit dans Moteurs_PulsesEnMetres, et le glissement de la
 // chenille s'y cache : ce sont des constantes ajustees par la mesure, pas des
-// grandeurs physiques. Le rapport annonce par le fabricant pour le JGB37-520
-// est de 90, mais il donne le double de la distance reelle sur ce chassis.
+// grandeurs physiques relevables sur une fiche produit.
+//
+// NON CALIBRE : RATIO_REDUCTEUR est la valeur d'origine, jamais mesuree. Le
+// fabricant annonce 90 pour le JGB37-520, mais cette valeur donne le double de
+// la distance reelle sur ce chassis, ce qui situe le rapport effectif autour de
+// 45. Les distances des sequences de blocs sont donc justes a quelques pourcents
+// pres au mieux.
 // Reglage : RATIO_nouveau = RATIO_actuel * (distance_commandee / mesuree),
-// mesure sur 2 m pour limiter le poids des transitoires.
+// sur 2 m pour limiter le poids des transitoires de demarrage et d'arret.
 #define DIAMETRE_ROUE_MM      65.0
-#define RATIO_REDUCTEUR       50.0  
+#define RATIO_REDUCTEUR       50.0
 #define IMPULSIONS_PAR_TOUR   44.0
 #define IMPULSIONS_PAR_ROUE   (IMPULSIONS_PAR_TOUR * RATIO_REDUCTEUR)
 
 // Vitesses moteur (consignes). En boucle fermee, l'unite est le nombre
 // d'impulsions par 10 ms : la plage utile va jusqu'a environ 50 selon la
-// charge et la tension. Les valeurs retenues sont celles de l'exemple du
-// fabricant, 23 en translation et 20 en rotation sur place.
+// charge et la tension. La translation reprend la valeur de l'exemple du
+// fabricant. La rotation est volontairement bien en dessous : l'inertie de fin
+// de virage croit comme le carre de la vitesse, et la reproductibilite compte
+// davantage que la rapidite sur un parcours.
 #define VITESSE_DEPLACEMENT   23
-#define VITESSE_ROTATION      12
-#define VITESSE_JOYSTICK      30
+#define VITESSE_ROTATION      11
 
-// Compensation rotation
-// A REPRENDRE : la marge n'a pas ete recalibree depuis le passage de
-// VITESSE_ROTATION de 12 a 20, et les rotations depassent d'environ 15 degres.
-// Methode : commander 90 puis 180 degres. Un ecart constant designe l'inertie,
-// donc cette marge ; un ecart proportionnel designe SENSIBILITE_GYRO. Garder
-// ROT_MARGE_LENTE_DEG nettement au-dessus, sans quoi la phase d'approche lente
-// n'a plus lieu avant l'arret.
+// Pilotage manuel au joystick. Sensibilites separees : sur un chassis a
+// chenilles, la rotation fait patiner les deux cotes en sens opposes, c'est le
+// mouvement le plus brutal et le plus difficile a doser. Elle est donc
+// volontairement plus lente que la translation.
+// La reponse suit une courbe dite exponentielle, pratique etablie sur les
+// emetteurs de radiocommande (EdgeTX User Manual, section Inputs). Le nom est
+// un abus de langage : l'implementation courante est un melange cubique
+//   f(v) = EXPO * v^3 + (1 - EXPO) * v
+// Elle conserve f(0) = 0 et f(1) = 1, et n'ecrase que la pente au centre : a
+// 0.6, le neutre est 2.5 fois moins sensible, sans perte de vitesse maximale.
+// Les emetteurs expriment le meme melange par le coefficient complementaire,
+// soit facteur = 1 - EXPO, ou facteur = 1 redonne la reponse lineaire.
+#define VITESSE_MANUEL          80    // avance et recul, joystick a fond
+#define VITESSE_ROTATION_MANUEL 50    // rotation gauche et droite
+#define EXPO_MANUEL             0.6f  // 0 = lineaire, 1 = tres adouci au centre
+
+// Compensation de l'inertie de fin de rotation, valeurs retenues pour
+// VITESSE_ROTATION = 11. Toute modification de cette vitesse impose de les
+// reprendre : commander 90 puis 180 degres et mesurer. Un ecart constant
+// designe l'inertie, donc ROT_MARGE_ARRET_DEG ; un ecart proportionnel designe
+// SENSIBILITE_GYRO. Garder ROT_MARGE_LENTE_DEG nettement au-dessus de la marge
+// d'arret, sans quoi la phase d'approche lente n'a plus lieu.
 #define ROT_MARGE_ARRET_DEG   10.0
 #define ROT_MARGE_LENTE_DEG   20.0
 
@@ -163,10 +184,15 @@
 #define SERVO_MAINTIEN_MS     400     // maintien actif apres l'arrivee a la cible
 
 // Detection d'obstacles (fusion ultrason + LiDAR)
-#define OBSTACLE_SEUIL_CM           40    // en deca : obstacle signale
+// Le seuil doit rester nettement au-dessus de LIDAR_DISTANCE_MIN. A 20, soit
+// exactement la zone morte du LiDAR, la decision se prenait a la frontiere ou
+// celui-ci entre et sort de la fusion : la distance frontale sautait d'une
+// source a l'autre au point meme du declenchement, et l'obstacle etait detecte
+// deux fois selon l'angle d'approche.
+#define OBSTACLE_SEUIL_CM           25    // en deca : obstacle signale
 #define OBSTACLE_PERIODE_MS         50    // reevaluation de la distance frontale
 #define OBSTACLE_ECART_SONDAGE_DEG  45    // ecart des secteurs lateraux (deg)
-#define OBSTACLE_SENS_SERVO         1     // -1 si gauche et droite sont inverses
+#define OBSTACLE_SENS_SERVO         -1     // -1 si gauche et droite sont inverses
 #define OBSTACLE_STABILISATION_MS   40    // attente apres arrivee, avant la mesure
 
 // Feux de signalisation (donnees fournies par la vision du MPU)
@@ -175,6 +201,18 @@
 // Evitement d'obstacle (contournement lateral)
 #define EVITEMENT_DISTANCE_M        0.30  // longement le long de l'obstacle (m)
 #define EVITEMENT_ESSAIS_MAX        3     // rotations avant d'abandonner
+
+// Rapport entre la rotation de retour et celle de l'aller. A 1.0 le vehicule
+// retrouve son cap initial mais reste decale lateralement de la distance de
+// longement multipliee par le sinus de l'angle d'aller : il roule parallelement
+// a la ligne sans jamais la revoir, et le suivi s'arrete apres MISS_MAX cycles.
+// Au-dela de 1.0 il repart en direction de la ligne et finit par la recroiser.
+#define EVITEMENT_FACTEUR_RETOUR    2.0f
+
+// Duree d'immobilisation entre deux etapes du contournement. La carte moteur
+// maintient sa derniere consigne tant qu'on ne lui en donne pas d'autre : sans
+// arret explicite, les etapes s'enchainent en roulant et se superposent.
+#define EVITEMENT_PAUSE_MS          400
 
 // Recul de chaque capteur par rapport au pare-choc avant (cm). Les mesures
 // sont ramenees a cette reference commune : sans cela, la fusion comparerait

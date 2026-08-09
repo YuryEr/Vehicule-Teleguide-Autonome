@@ -6,19 +6,25 @@
 
 // ======================== Machine a etats ========================
 
+// Chaque etape est precedee d'une immobilisation : le vehicule s'arrete, puis
+// agit. Sans cet arret explicite, les chenilles gardent la derniere consigne du
+// suivi de ligne et la manoeuvre s'enchaine en roulant.
 enum EtatEvitement {
     REPOS,
+    PAUSE,
     SONDAGE,
     ROTATION_ALLER,
     LONGEMENT,
     ROTATION_RETOUR
 };
 
-static EtatEvitement etat        = REPOS;
-static int           coteChoisi  = SECTEUR_GAUCHE;
-static int           angleTourne = 0;
-static int           essais      = 0;
-static bool          abandonne   = false;
+static EtatEvitement etat          = REPOS;
+static EtatEvitement etapeSuivante = REPOS;
+static unsigned long tPause        = 0;
+static int           coteChoisi    = SECTEUR_GAUCHE;
+static int           angleTourne   = 0;
+static int           essais        = 0;
+static bool          abandonne     = false;
 
 // ======================== Rotations ========================
 
@@ -31,26 +37,61 @@ static void tournerVersCote(int angle) {
     angleTourne += angle;
 }
 
+// Le retour depasse volontairement l'aller : rendre exactement l'angle parcouru
+// laisserait le vehicule parallele a la ligne, decale pour toujours. Le
+// depassement le renvoie vers elle.
 static void tournerRetour(void) {
-    if (coteChoisi == SECTEUR_GAUCHE) Deplacement_TournerDroite(angleTourne);
-    else                              Deplacement_TournerGauche(angleTourne);
+    int angle = (int)(angleTourne * EVITEMENT_FACTEUR_RETOUR);
+    if (coteChoisi == SECTEUR_GAUCHE) Deplacement_TournerDroite(angle);
+    else                              Deplacement_TournerGauche(angle);
 }
 
 static void terminer(void) {
+    Securite_Arreter();
     Securite_DefinirManoeuvre(false);
     etat = REPOS;
+}
+
+// ======================== Enchainement des etapes ========================
+
+// Lance l'action propre a une etape, a la sortie de la pause qui la precede.
+static void entrerEtape(EtatEvitement etape) {
+    etat = etape;
+    switch (etape) {
+        case SONDAGE:
+            Obstacle_LancerSondage();
+            break;
+        case ROTATION_ALLER:
+            tournerVersCote(OBSTACLE_ECART_SONDAGE_DEG);
+            break;
+        case LONGEMENT:
+            Deplacement_AvancerMetres(EVITEMENT_DISTANCE_M);
+            break;
+        case ROTATION_RETOUR:
+            tournerRetour();
+            break;
+        default:
+            break;
+    }
+}
+
+// Immobilise le vehicule avant de passer a l'etape suivante.
+static void marquerPause(EtatEvitement suivante) {
+    Securite_Arreter();
+    etapeSuivante = suivante;
+    tPause        = millis();
+    etat          = PAUSE;
 }
 
 // ======================== API ========================
 
 void Evitement_Initialiser(void) {
-    etat        = REPOS;
-    angleTourne = 0;
-    essais      = 0;
-    abandonne   = false;
+    etat          = REPOS;
+    etapeSuivante = REPOS;
+    angleTourne   = 0;
+    essais        = 0;
+    abandonne     = false;
 }
-
-bool Evitement_EnCours(void) { return etat != REPOS; }
 
 void Evitement_MettreAJour(void) {
     switch (etat) {
@@ -70,20 +111,24 @@ void Evitement_MettreAJour(void) {
             if (abandonne)              return;
             if (Deplacement_EstActif()) return;
 
-            // Le veto a deja immobilise le vehicule : la manoeuvre part d'un
-            // arret franc, condition necessaire a un sondage exploitable.
+            // Le suivi de ligne cesse d'emettre des que le drapeau est pose,
+            // mais la carte moteur tient sa derniere consigne : c'est la pause
+            // qui immobilise reellement le vehicule avant le sondage.
             Securite_DefinirManoeuvre(true);
             angleTourne = 0;
             essais      = 0;
-            Obstacle_LancerSondage();
-            etat = SONDAGE;
+            marquerPause(SONDAGE);
+            break;
+
+        case PAUSE:
+            if (millis() - tPause < EVITEMENT_PAUSE_MS) return;
+            entrerEtape(etapeSuivante);
             break;
 
         case SONDAGE:
             if (Obstacle_SondageEnCours()) return;
             coteChoisi = Obstacle_CoteLePlusDegage();
-            tournerVersCote(OBSTACLE_ECART_SONDAGE_DEG);
-            etat = ROTATION_ALLER;
+            marquerPause(ROTATION_ALLER);
             break;
 
         case ROTATION_ALLER:
@@ -94,7 +139,7 @@ void Evitement_MettreAJour(void) {
             if (Securite_VetoActif()) {
                 essais++;
                 if (essais < EVITEMENT_ESSAIS_MAX) {
-                    tournerVersCote(OBSTACLE_ECART_SONDAGE_DEG);
+                    marquerPause(ROTATION_ALLER);
                     return;
                 }
                 abandonne = true;   // obstacle infranchissable : le veto maintient l'arret
@@ -102,14 +147,12 @@ void Evitement_MettreAJour(void) {
                 return;
             }
 
-            Deplacement_AvancerMetres(EVITEMENT_DISTANCE_M);
-            etat = LONGEMENT;
+            marquerPause(LONGEMENT);
             break;
 
         case LONGEMENT:
             if (Deplacement_EstActif()) return;
-            tournerRetour();
-            etat = ROTATION_RETOUR;
+            marquerPause(ROTATION_RETOUR);
             break;
 
         case ROTATION_RETOUR:

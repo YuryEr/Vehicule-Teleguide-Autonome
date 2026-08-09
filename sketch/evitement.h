@@ -33,17 +33,4 @@ void Evitement_Initialiser(void);
  */
 void Evitement_MettreAJour(void);
 
-/*
- * Evitement_EnCours
- *
- * INDIQUE SI UN CONTOURNEMENT EST EN COURS.
- *
- * PARAMETRE :
- * AUCUN
- *
- * RETOUR :
- * true SI LA MANOEUVRE EST EN COURS, false SINON
- */
-bool Evitement_EnCours(void);
-
 #endif

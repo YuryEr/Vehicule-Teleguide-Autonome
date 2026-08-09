@@ -121,7 +121,7 @@ static void tracerDemarrage(void) {
     tracee = true;
 
     BusI2C_Tracer();
-    Serial.println("[MCU] TankETS pret — Bridge actif");
+    Serial.println("[MCU] TankETS pret, Bridge actif");
 }
 
 void loop() {
