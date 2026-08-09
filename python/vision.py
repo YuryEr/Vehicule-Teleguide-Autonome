@@ -1,5 +1,5 @@
 """
-Module de vision, TankETS (MPU / Qualcomm Linux)
+Module de vision, VTA (MPU / Qualcomm Linux)
 ==================================================
 Capture camera et fonctions de detection routiere.
 

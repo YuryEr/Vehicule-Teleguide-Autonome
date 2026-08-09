@@ -1,5 +1,5 @@
 """
-Navigation autonome, TankETS (MPU / Qualcomm Linux)
+Navigation autonome, VTA (MPU / Qualcomm Linux)
 =====================================================
 Suivi de ligne par correcteur proportionnel-derive.
 

@@ -60,7 +60,7 @@
 // fabricant. La rotation est volontairement bien en dessous : l'inertie de fin
 // de virage croit comme le carre de la vitesse, et la reproductibilite compte
 // davantage que la rapidite sur un parcours.
-#define VITESSE_DEPLACEMENT   23
+#define VITESSE_DEPLACEMENT   12
 #define VITESSE_ROTATION      11
 
 // Pilotage manuel au joystick. Reponse lineaire, une seule sensibilite pour la
@@ -93,7 +93,7 @@
 // s'ajoute a la derive etablie. Une constante ne peut annuler leur somme qu'a
 // une seule distance : regler a la distance reellement utilisee, ou composer
 // les longs trajets avec plusieurs blocs de la distance calibree.
-#define AVANCE_TRIM_NUM       8     // de -AVANCE_TRIM_DEN a +AVANCE_TRIM_DEN
+#define AVANCE_TRIM_NUM       5     // de -AVANCE_TRIM_DEN a +AVANCE_TRIM_DEN
 #define AVANCE_TRIM_DEN       16
 
 
@@ -140,6 +140,17 @@
 #define QR_VERSION           3     // 29x29 modules, 53 octets en correction basse
 #define QR_TAILLE_MODULE     4     // cote d'un module, en pixels
 #define QR_ZONE_SILENCE      4     // marge blanche en modules, exigee par la norme
+
+// Point d'acces WiFi cree sur le MPU (voir le guide de deploiement du README).
+// Ces deux valeurs doivent correspondre a la commande nmcli qui cree le point
+// d'acces : elles ne sont pas decouvertes, elles sont choisies. Seule l'adresse
+// IP est transmise par le MPU, etant la seule a varier d'un reseau a l'autre.
+#define RESEAU_SSID           "VTA"
+#define RESEAU_MOT_DE_PASSE   "vta123"
+
+// Nom court affiche a l'ecran. La dalle fait 320 pixels de large : le nom
+// complet du projet n'y tient pas a une taille lisible.
+#define NOM_COURT             "VTA"
 
 // Capteur ultrason HC-SR04 (ECHO relie en direct, sans pont diviseur)
 #define PIN_ULTRASON_TRIG      2

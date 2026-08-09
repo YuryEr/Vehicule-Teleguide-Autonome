@@ -1,5 +1,5 @@
 /*
- * app.js : Logique interface web TankETS
+ * app.js : Logique interface web VTA
  * PFE ELE795 - ETS - Ete 2026
  *
  * Sources :

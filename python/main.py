@@ -1,5 +1,5 @@
 """
-TankETS : Point d'entree (MPU / Qualcomm Linux)
+VTA : Point d'entree (MPU / Qualcomm Linux)
 """
 
 import subprocess

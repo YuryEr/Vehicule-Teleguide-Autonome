@@ -98,9 +98,9 @@ void setup() {
     Imu_Calibrer();
     Leds_Initialiser();
     Ecran_Initialiser();
-    // Essai en dur : valide la librairie QR et la lisibilite du symbole
-    // avant que le MPU ne fournisse les vrais parametres du reseau.
-    Ecran_AfficherConnexion("TankETS", "tank1234", "192.168.137.114");
+    // La page de connexion attend l'adresse IP du MPU : elle depend du
+    // reseau rejoint, que le MCU n'a aucun moyen de connaitre.
+    Ecran_AfficherAttente();
     Ultrason_Initialiser();
     Lidar_Initialiser();
     ServoLidar_Initialiser();
@@ -121,7 +121,7 @@ static void tracerDemarrage(void) {
     tracee = true;
 
     BusI2C_Tracer();
-    Serial.println("[MCU] TankETS pret, Bridge actif");
+    Serial.println("[MCU] VTA pret, Bridge actif");
 }
 
 void loop() {
@@ -132,6 +132,7 @@ void loop() {
     // direction du clignotant leur est fournie ici.
     Leds_DefinirVirage(Deplacement_DirectionVirage());
     Leds_MettreAJour();
+    Ecran_MettreAJour();
     Ultrason_MettreAJour();
     Lidar_MettreAJour();
     ServoLidar_MettreAJour();

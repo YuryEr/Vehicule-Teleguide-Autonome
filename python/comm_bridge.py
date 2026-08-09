@@ -1,5 +1,5 @@
 """
-Communication Bridge, TankETS (MPU <-> MCU)
+Communication Bridge, VTA (MPU <-> MCU)
 ==============================================
 Couche unique de communication entre le MPU (Python/Linux)
 et le MCU (STM32/Zephyr) via Arduino Bridge RPC.
@@ -20,6 +20,8 @@ Contrat RPC (Python -> MCU) :
         mode_phares(int)    [0=eteint, 1=allume]
     Vision :
         on_feu(bool, int, int)
+    Reseau :
+        definir_reseau(int, int, int, int)  [octets de l'adresse IPv4]
 
 NOTE : le Bridge ne transmet pas correctement les nombres negatifs.
 Toutes les valeurs envoyees au MCU sont positives, le sens est
@@ -197,6 +199,29 @@ def notifier_feu(present, couleur, confiance):
     confiance : pourcentage 0-100
     """
     _appeler("on_feu", present, int(couleur), int(confiance))
+
+
+# ======================== Reseau ========================
+
+def definir_reseau(ip):
+    """Transmet au MCU l'adresse IP affichee dans le code QR de connexion.
+
+    ip : adresse IPv4 en notation pointee
+
+    L'adresse part en quatre entiers, un par octet. Le Bridge transporte les
+    entiers de facon eprouvee dans ce projet, et une IPv4 se reconstitue sans
+    perte a partir de ses octets.
+    """
+    octets = ip.split(".")
+    if len(octets) != 4:
+        print(f"[bridge] adresse mal formee, ignoree : {ip}")
+        return
+    try:
+        valeurs = [int(octet) for octet in octets]
+    except ValueError:
+        print(f"[bridge] adresse mal formee, ignoree : {ip}")
+        return
+    _appeler("definir_reseau", *valeurs)
 
 
 # ======================== Capteurs de distance ========================
