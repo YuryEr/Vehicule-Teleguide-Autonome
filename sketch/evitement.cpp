@@ -14,7 +14,9 @@ enum EtatEvitement {
     PAUSE,
     SONDAGE,
     ROTATION_ALLER,
-    LONGEMENT,
+    AVANCE_DIAGONALE,
+    ROTATION_PARALLELE,
+    AVANCE_PARALLELE,
     ROTATION_RETOUR
 };
 
@@ -28,20 +30,20 @@ static bool          abandonne     = false;
 
 // ======================== Rotations ========================
 
-// Pivote vers le cote retenu et cumule l'angle parcouru. La rotation de
-// retour annule ce cumul : les deux mouvements sous-tournent de la meme
-// marge, leurs erreurs se compensent et le cap initial est preserve.
+// Pivote a l'oppose de la ligne, vers le cote retenu par le sondage, et cumule
+// l'angle parcouru. Le cumul importe car la voie peut rester bloquee apres une
+// premiere rotation : un cran supplementaire est alors ajoute, et la remise
+// parallele doit rendre le total, pas seulement le premier cran.
 static void tournerVersCote(int angle) {
     if (coteChoisi == SECTEUR_GAUCHE) Deplacement_TournerGauche(angle);
     else                              Deplacement_TournerDroite(angle);
     angleTourne += angle;
 }
 
-// Le retour depasse volontairement l'aller : rendre exactement l'angle parcouru
-// laisserait le vehicule parallele a la ligne, decale pour toujours. Le
-// depassement le renvoie vers elle.
-static void tournerRetour(void) {
-    int angle = (int)(angleTourne * EVITEMENT_FACTEUR_RETOUR);
+// Pivote dans l'autre sens, donc vers la ligne. Sert deux fois : d'abord pour
+// annuler l'angle d'ecartement et se remettre parallele a la ligne, ensuite
+// pour se reorienter vers elle en fin de manoeuvre.
+static void tournerVersLigne(int angle) {
     if (coteChoisi == SECTEUR_GAUCHE) Deplacement_TournerDroite(angle);
     else                              Deplacement_TournerGauche(angle);
 }
@@ -62,13 +64,23 @@ static void entrerEtape(EtatEvitement etape) {
             Obstacle_LancerSondage();
             break;
         case ROTATION_ALLER:
-            tournerVersCote(OBSTACLE_ECART_SONDAGE_DEG);
+            tournerVersCote(EVITEMENT_ANGLE_DEG);
             break;
-        case LONGEMENT:
+        case AVANCE_DIAGONALE:
             Deplacement_AvancerMetres(EVITEMENT_DISTANCE_M);
             break;
+        case ROTATION_PARALLELE:
+            // Rendre exactement l'angle d'ecartement remet le cap d'origine,
+            // donc parallele a la ligne, decale lateralement de la diagonale.
+            tournerVersLigne(angleTourne);
+            break;
+        case AVANCE_PARALLELE:
+            Deplacement_AvancerMetres(EVITEMENT_LONGEMENT_M);
+            break;
         case ROTATION_RETOUR:
-            tournerRetour();
+            // Un cran de plus dans le meme sens : le vehicule quitte le cap
+            // parallele et repart en diagonale vers la ligne, qu'il recroise.
+            tournerVersLigne(EVITEMENT_ANGLE_DEG);
             break;
         default:
             break;
@@ -147,10 +159,20 @@ void Evitement_MettreAJour(void) {
                 return;
             }
 
-            marquerPause(LONGEMENT);
+            marquerPause(AVANCE_DIAGONALE);
             break;
 
-        case LONGEMENT:
+        case AVANCE_DIAGONALE:
+            if (Deplacement_EstActif()) return;
+            marquerPause(ROTATION_PARALLELE);
+            break;
+
+        case ROTATION_PARALLELE:
+            if (Deplacement_EstActif()) return;
+            marquerPause(AVANCE_PARALLELE);
+            break;
+
+        case AVANCE_PARALLELE:
             if (Deplacement_EstActif()) return;
             marquerPause(ROTATION_RETOUR);
             break;

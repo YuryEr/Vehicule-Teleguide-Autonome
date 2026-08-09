@@ -471,34 +471,60 @@ Le servo n'existe que pour le sondage : il n'y a pas de balayage permanent, le
 champ du LiDAR etant trop etroit pour cartographier quoi que ce soit en un temps
 raisonnable.
 
+Le trajet forme un **trapeze** : une diagonale qui ecarte le vehicule de la
+ligne, un segment parallele qui depasse l'obstacle, puis une diagonale de retour
+vers la ligne.
+
+                       EVITEMENT_LONGEMENT_M
+                      +---------------+           segment parallele a la ligne
+                     /                 \  <-- EVITEMENT_ANGLE_DEG aux 4 sommets
+        ____________/    [obstacle]     \_______  ligne suivie
+
     REPOS
       | obstacle detecte en mode autonome
       v
-    PAUSE --> SONDAGE          trois secteurs, +/- OBSTACLE_ECART_SONDAGE_DEG
-      |                        retient le cote le plus degage
+    PAUSE --> SONDAGE             trois secteurs, +/- OBSTACLE_ECART_SONDAGE_DEG
+      |                           retient le cote le plus degage
       v
-    PAUSE --> ROTATION_ALLER   pivote vers ce cote
+    PAUSE --> ROTATION_ALLER      pivote de EVITEMENT_ANGLE_DEG vers ce cote
       |
       v
-    PAUSE --> LONGEMENT        avance de EVITEMENT_DISTANCE_M
+    PAUSE --> AVANCE_DIAGONALE    avance de EVITEMENT_DISTANCE_M
       |
       v
-    PAUSE --> ROTATION_RETOUR  rend l'angle parcouru x EVITEMENT_FACTEUR_RETOUR
+    PAUSE --> ROTATION_PARALLELE  rend l'angle d'ecartement, cap parallele
+      |                           a la ligne
+      v
+    PAUSE --> AVANCE_PARALLELE    avance de EVITEMENT_LONGEMENT_M
       |
       v
-    REPOS                      le suivi de ligne reprend la main
+    PAUSE --> ROTATION_RETOUR     un cran de plus, cap dirige vers la ligne
+      |
+      v
+    REPOS                         le suivi de ligne reprend la main
 
 **Chaque etape est precedee d'une immobilisation de `EVITEMENT_PAUSE_MS`.** La
 carte moteur maintient sa derniere consigne tant qu'on ne lui en donne pas
 d'autre : sans arret explicite, les etapes s'enchainent en roulant et se
 superposent.
 
-**Le retour depasse volontairement l'aller.** A un facteur de 1.0 le vehicule
-retrouve son cap initial mais reste decale lateralement, il roule alors
-parallelement a la ligne sans jamais la revoir et le suivi s'arrete apres
-`MISS_MAX` cycles. Au-dela de 1.0 il repart en direction de la ligne et finit par
-la recroiser. Le sondage est retente jusqu'a `EVITEMENT_ESSAIS_MAX` fois si aucun
-cote n'est degage.
+**Les trois rotations ne sont pas dans le meme sens.** La premiere ecarte de la
+ligne, du cote retenu par le sondage. Les deux suivantes vont a l'oppose : la
+deuxieme rend exactement l'angle d'ecartement et remet le cap d'origine, la
+troisieme ajoute un cran de plus et dirige le vehicule vers la ligne, qu'il
+recroise. Sans cette troisieme rotation, il roulerait parallelement a la ligne
+sans jamais la revoir et le suivi s'arreterait apres `MISS_MAX` cycles.
+
+**La deuxieme rotation rend l'angle cumule, pas une valeur fixe.** Si la voie
+reste bloquee apres la premiere rotation, un cran supplementaire est ajoute,
+jusqu'a `EVITEMENT_ESSAIS_MAX` fois. La remise parallele doit alors annuler le
+total, sans quoi le segment cense etre parallele partirait de travers.
+
+**Dimensionnement.** L'ecart lateral obtenu vaut `EVITEMENT_DISTANCE_M` multiplie
+par le sinus de l'angle, soit 32 cm pour 45 cm a 45 degres. Il doit depasser le
+demi-encombrement de l'obstacle, sans quoi le segment parallele le percute. Le
+segment parallele doit lui-meme depasser la profondeur de l'obstacle avant que le
+vehicule ne se reoriente vers la ligne.
 
 ## Ecran de connexion
 
@@ -721,9 +747,12 @@ constante ne peut annuler leur somme qu'a une seule distance.
 
 | Constante | Valeur | Role |
 |---|---|---|
-| `VITESSE_MANUEL` | 80 | Avance et recul, joystick a fond |
-| `VITESSE_ROTATION_MANUEL` | 50 | Rotation, plus lente car plus brutale sur chenilles |
-| `EXPO_MANUEL` | 0.6 | 0 = lineaire, 1 = tres adouci au centre |
+| `VITESSE_JOYSTICK` | 80 | Sensibilite unique, appliquee lineairement aux deux axes |
+
+La consigne envoyee vaut `(y -/+ x) * VITESSE_JOYSTICK` par cote. L'interface
+bornant la poignee a un cercle, la diagonale a 45 degres produit une consigne de
+113 que `Moteurs_DefinirVitesse` ecrete a 100 : un seul cote etant tronque, le
+rayon de virage se resserre legerement a pleins gaz.
 
 ### Detection d'obstacles et contournement
 
@@ -734,10 +763,11 @@ constante ne peut annuler leur somme qu'a une seule distance.
 | `OBSTACLE_ECART_SONDAGE_DEG` | 45 | Ecart des secteurs lateraux sondes |
 | `OBSTACLE_SENS_SERVO` | -1 | -1 si gauche et droite sont inverses mecaniquement |
 | `OBSTACLE_STABILISATION_MS` | 40 | Attente apres l'arrivee du servo, avant la mesure |
-| `EVITEMENT_DISTANCE_M` | 0.30 | Longement le long de l'obstacle |
-| `EVITEMENT_FACTEUR_RETOUR` | 2.0 * | Rapport rotation de retour sur rotation d'aller |
+| `EVITEMENT_ANGLE_DEG` | 45 | Angle de chacune des trois rotations |
+| `EVITEMENT_DISTANCE_M` | 0.45 | Diagonale d'ecartement, donne 32 cm d'ecart lateral |
+| `EVITEMENT_LONGEMENT_M` | 0.20 | Segment parallele a la ligne, doit depasser l'obstacle |
 | `EVITEMENT_PAUSE_MS` | 400 | Immobilisation entre deux etapes |
-| `EVITEMENT_ESSAIS_MAX` | 3 | Sondages avant d'abandonner |
+| `EVITEMENT_ESSAIS_MAX` | 3 | Rotations d'ecartement avant d'abandonner |
 | `ULTRASON_RECUL_CM` | 0 | Recul du capteur par rapport au pare-choc, **a mesurer sur la coque finale** |
 | `LIDAR_RECUL_CM` | 0 | Idem |
 
@@ -820,12 +850,6 @@ toucher au code.
   Smith, A. R. (1978). Color Gamut Transform Pairs. SIGGRAPH '78.
 - Correcteur proportionnel-derive, suivi de ligne
   Ogata, K. (2010). Modern Control Engineering, 5e edition. Prentice Hall.
-- Courbe dite exponentielle appliquee au joystick, pratique etablie sur les
-  emetteurs de radiocommande. L'implementation courante est un melange
-  cubique de la forme (1 - facteur) * v^3 + facteur * v, transpose dans
-  `sketch/config.h` avec le coefficient complementaire EXPO = 1 - facteur.
-  EdgeTX User Manual, section Inputs
-  https://manual.edgetx.org/bw-radios/model-select/inputs-mixes-and-outputs/inputs
 
 ### Bibliotheques
 

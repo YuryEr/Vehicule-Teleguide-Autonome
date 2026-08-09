@@ -63,21 +63,9 @@
 #define VITESSE_DEPLACEMENT   23
 #define VITESSE_ROTATION      11
 
-// Pilotage manuel au joystick. Sensibilites separees : sur un chassis a
-// chenilles, la rotation fait patiner les deux cotes en sens opposes, c'est le
-// mouvement le plus brutal et le plus difficile a doser. Elle est donc
-// volontairement plus lente que la translation.
-// La reponse suit une courbe dite exponentielle, pratique etablie sur les
-// emetteurs de radiocommande (EdgeTX User Manual, section Inputs). Le nom est
-// un abus de langage : l'implementation courante est un melange cubique
-//   f(v) = EXPO * v^3 + (1 - EXPO) * v
-// Elle conserve f(0) = 0 et f(1) = 1, et n'ecrase que la pente au centre : a
-// 0.6, le neutre est 2.5 fois moins sensible, sans perte de vitesse maximale.
-// Les emetteurs expriment le meme melange par le coefficient complementaire,
-// soit facteur = 1 - EXPO, ou facteur = 1 redonne la reponse lineaire.
-#define VITESSE_MANUEL          80    // avance et recul, joystick a fond
-#define VITESSE_ROTATION_MANUEL 50    // rotation gauche et droite
-#define EXPO_MANUEL             0.6f  // 0 = lineaire, 1 = tres adouci au centre
+// Pilotage manuel au joystick. Reponse lineaire, une seule sensibilite pour la
+// translation et la rotation.
+#define VITESSE_JOYSTICK      80
 
 // Compensation de l'inertie de fin de rotation, valeurs retenues pour
 // VITESSE_ROTATION = 11. Toute modification de cette vitesse impose de les
@@ -198,16 +186,23 @@
 // Feux de signalisation (donnees fournies par la vision du MPU)
 #define FEU_AGE_MAX_MS              3000  // au dela, la detection est perimee
 
-// Evitement d'obstacle (contournement lateral)
-#define EVITEMENT_DISTANCE_M        0.30  // longement le long de l'obstacle (m)
+// Evitement d'obstacle (contournement lateral). Le trajet forme un trapeze :
+// une diagonale qui ecarte le vehicule de la ligne, un segment parallele qui
+// depasse l'obstacle, puis une diagonale de retour vers la ligne.
+//
+//                   EVITEMENT_LONGEMENT_M
+//                  +---------------+           segment parallele a la ligne
+//                 /                 \  <-- EVITEMENT_ANGLE_DEG aux 4 sommets
+//    ____________/    [obstacle]     \_______  ligne suivie
+//
+// L'ecart lateral obtenu vaut EVITEMENT_DISTANCE_M multiplie par le sinus de
+// l'angle : il doit depasser le demi-encombrement de l'obstacle, sans quoi le
+// segment parallele le percute. Le segment parallele doit lui-meme depasser la
+// profondeur de l'obstacle avant que le vehicule ne se reoriente vers la ligne.
+#define EVITEMENT_ANGLE_DEG         45    // angle de chaque rotation (deg)
+#define EVITEMENT_DISTANCE_M        0.45  // diagonale d'ecartement (m)
+#define EVITEMENT_LONGEMENT_M       0.20  // segment parallele a la ligne (m)
 #define EVITEMENT_ESSAIS_MAX        3     // rotations avant d'abandonner
-
-// Rapport entre la rotation de retour et celle de l'aller. A 1.0 le vehicule
-// retrouve son cap initial mais reste decale lateralement de la distance de
-// longement multipliee par le sinus de l'angle d'aller : il roule parallelement
-// a la ligne sans jamais la revoir, et le suivi s'arrete apres MISS_MAX cycles.
-// Au-dela de 1.0 il repart en direction de la ligne et finit par la recroiser.
-#define EVITEMENT_FACTEUR_RETOUR    2.0f
 
 // Duree d'immobilisation entre deux etapes du contournement. La carte moteur
 // maintient sa derniere consigne tant qu'on ne lui en donne pas d'autre : sans
