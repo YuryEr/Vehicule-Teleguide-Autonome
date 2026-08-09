@@ -49,34 +49,4 @@ void Ecran_AfficherAttente(void);
 void Ecran_AfficherConnexion(const char *ssid, const char *mdp,
                               const char *ip);
 
-/*
- * Ecran_DefinirAdresse
- *
- * ENREGISTRE L'ADRESSE IP FOURNIE PAR LE MPU. NE DESSINE RIEN : LE TRACE
- * A LIEU AU PROCHAIN Ecran_MettreAJour. UNE ADRESSE IDENTIQUE A CELLE DEJA
- * AFFICHEE EST IGNOREE.
- *
- * PARAMETRE :
- * ip : ADRESSE IPv4 EN NOTATION POINTEE
- *
- * RETOUR :
- * AUCUN
- */
-void Ecran_DefinirAdresse(const char *ip);
-
-/*
- * Ecran_MettreAJour
- *
- * REDESSINE LA PAGE DE CONNEXION SI L'ADRESSE A CHANGE. SANS EFFET TANT
- * QU'AUCUN CHANGEMENT N'EST EN ATTENTE. A APPELER A CHAQUE ITERATION DE
- * loop().
- *
- * PARAMETRE :
- * AUCUN
- *
- * RETOUR :
- * AUCUN
- */
-void Ecran_MettreAJour(void);
-
 #endif

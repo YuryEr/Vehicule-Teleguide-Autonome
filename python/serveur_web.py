@@ -26,7 +26,6 @@ from flask_socketio import SocketIO
 
 import comm_bridge
 import navigation
-import reseau
 import vision as module_vision
 from boucle_vision import BoucleVision, PERIODE_LIGNES, PERIODE_INFERENCE
 
@@ -48,9 +47,6 @@ CADENCE_CAPTURE = 30
 # Cadence maximale du flux vers le navigateur, alignee sur la camera : encoder
 # plus vite ne produirait que des doublons.
 PERIODE_FLUX = 1.0 / CADENCE_CAPTURE
-
-# Republication de l'adresse a l'ecran du MCU (s)
-PERIODE_RESEAU = 30.0
 
 CHEMIN_ASSETS = os.path.join(
     os.path.dirname(os.path.dirname(__file__)), 'assets'
@@ -545,31 +541,10 @@ def _description_commande(commande):
 
 # ======================== Lancement ========================
 
-def _tache_reseau():
-    """Publie l'adresse IP vers l'ecran du MCU.
-
-    Repetee a cadence lente parce que le MCU redemarre independamment du MPU :
-    une adresse envoyee une seule fois disparaitrait de l'ecran au prochain
-    reset de la carte. Le MCU ignore une adresse identique a celle qu'il
-    affiche deja, la repetition ne provoque donc aucun retrace.
-    """
-    reseau.diagnostiquer()
-    derniere = None
-    while True:
-        ip = reseau.adresse_ip()
-        if ip and not sequence_en_cours:
-            if ip != derniere:
-                print(f"[reseau] adresse publiee au MCU : {ip}")
-                derniere = ip
-            eventlet.tpool.execute(comm_bridge.definir_reseau, ip)
-        socketio.sleep(PERIODE_RESEAU)
-
-
 def demarrer_serveur():
     """Lance le serveur web. Bloquant."""
     print(f"[web] Serveur demarre sur http://0.0.0.0:{PORT_WEB}")
     socketio.start_background_task(_tache_capture)
     socketio.start_background_task(_tache_feux)
     socketio.start_background_task(_tache_lignes)
-    socketio.start_background_task(_tache_reseau)
     socketio.run(app, host='0.0.0.0', port=PORT_WEB, debug=False)

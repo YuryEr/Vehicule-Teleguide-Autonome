@@ -27,7 +27,7 @@ titre a l'ecran embarque, en-tetes des modules.
       sketch.ino           setup/loop, enregistrement des RPC Bridge
       config.h             Constantes materielles centralisees (broches, adresses, seuils)
       bus_i2c.h/cpp        Scan I2C unique au demarrage + cache de presence
-      comm_bridge.h/cpp    Bridge RPC : feux de signalisation, adresse reseau
+      comm_bridge.h/cpp    Bridge RPC, reception des donnees de vision
       moteurs.h/cpp        Carte Hiwonder, encodeurs, I2C bas niveau
       imu.h/cpp            MPU-6050, calibration gyroscope
       deplacement.h/cpp    Machine a etats, joystick, asservissement encodeurs + gyro
@@ -50,7 +50,6 @@ titre a l'ecran embarque, en-tetes des modules.
                            (seuillage adaptatif + centroide)
       boucle_vision.py     Anti-rebond des feux, cadences des deux boucles
       navigation.py        Suivi de ligne, correcteur proportionnel-derive
-      reseau.py            Detection de l'adresse IP publiee a l'ecran
       requirements.txt     Dependances Python
       yolov8n.onnx         Modele de detection, entree figee a 256x256
 
@@ -330,7 +329,7 @@ le scheduler Zephyr.
 Creer un point d'acces (AP), remplacer le SSID et le mot de passe :
 
 ```bash
-nmcli device wifi hotspot ssid VTA password vta123 ifname wlan0
+nmcli device wifi hotspot ssid VTA password admin123 ifname wlan0
 ```
 
 Appliquer automatiquement a chaque demarrage :
@@ -570,45 +569,24 @@ le symbole et le scan echoue sur la plupart des telephones.
 
 ### Origine des trois informations
 
-| Information | Source | Pourquoi |
+Les trois valeurs sont des constantes de `sketch/config.h`, et **doivent
+correspondre a la commande `nmcli` du guide de deploiement** :
+
+| Constante | Valeur | Origine |
 |---|---|---|
-| SSID | `RESEAU_SSID` dans `config.h` | Choisi, pas decouvert : c'est la commande `nmcli` qui le fixe |
-| Mot de passe | `RESEAU_MOT_DE_PASSE` dans `config.h` | Idem |
-| Adresse IP | Transmise par le MPU | Seule information qui varie d'un reseau a l'autre |
+| `RESEAU_SSID` | `VTA` | Choisi dans la commande `nmcli` |
+| `RESEAU_MOT_DE_PASSE` | `admin123` | Idem |
+| `RESEAU_IP` | `10.42.0.1` | Consequence de la commande, voir ci-dessous |
 
-Les deux constantes du MCU **doivent correspondre a la commande `nmcli`** du guide
-de deploiement. Elles ne sont pas lues du systeme : le MCU n'a aucun acces au
-gestionnaire de reseau, et les recopier est plus simple que de les transporter.
+L'adresse n'est pas arbitraire : en mode partage, NetworkManager attribue
+**10.42.0.1** a l'interface et distribue le reste du sous-reseau 10.42.0.0/24
+aux clients. Creer le point d'acces fixe donc l'adresse au meme titre que le
+SSID, et rien n'a besoin de la decouvrir a l'execution.
 
-L'adresse IP, elle, est detectee par `python/reseau.py` et publiee toutes les
-30 secondes par la RPC `definir_reseau`. Elle part en **quatre entiers**, un par
-octet : le Bridge transporte les entiers de facon eprouvee dans ce projet, et une
-adresse IPv4 se reconstitue sans perte a partir de ses octets.
-
-La republication periodique existe parce que le MCU redemarre independamment du
-MPU : une adresse envoyee une seule fois disparaitrait de l'ecran au prochain
-reset. Le MCU compare l'adresse recue a celle qu'il affiche et ne redessine que
-sur changement, la repetition ne coute donc rien.
-
-Tant qu'aucune adresse n'est arrivee, l'ecran affiche la page d'attente. Le
-redessin a lieu dans `loop()` et non dans le gestionnaire RPC : le trace occupe le
-SPI plusieurs dizaines de millisecondes, et bloquer le Bridge pendant ce temps est
-exactement ce qui l'avait deja fait mourir sous les traces serie.
-
-### Detection de l'adresse
-
-`python/reseau.py` essaie trois methodes dans l'ordre, et retient la premiere
-adresse non locale : l'outil `ip` sur `wlan0`, puis `hostname -I`, puis un socket
-UDP dont la route revele l'interface sortante. Aucun paquet n'est emis par la
-troisieme, ce qui la rend utilisable en mode point d'acces, sans Internet.
-
-**Le mode reseau du conteneur decide de ce qui fonctionne.** Avec une redirection
-de ports, les trois methodes decrivent le conteneur et non l'hote, et l'adresse
-annoncee serait injoignable depuis un telephone. C'est pourquoi `diagnostiquer()`
-s'execute au demarrage et journalise ce que chaque methode rapporte. Si aucune ne
-donne l'adresse attendue, la variable d'environnement **`VTA_IP`** court-circuite
-la detection. En mode point d'acces `nmcli`, NetworkManager attribue par defaut
-**10.42.0.1** a la carte.
+**Cela ne tient que si la carte cree son reseau.** Si elle en rejoint un, son
+adresse vient d'un DHCP : il faut alors la relever avec `ip addr show wlan0` et
+la reporter dans `config.h`. C'est la contrepartie assumee de la simplicite,
+acceptable parce que le mode point d'acces est celui du deploiement.
 
 ## Signalisation lumineuse
 
@@ -650,10 +628,8 @@ s'inverse de l'un a l'autre.
 | `obstacle_detecte` | aucun, retourne int (0/1) | Obstacle sous `OBSTACLE_SEUIL_CM` |
 | `lancer_sondage` | aucun | Sonde les trois secteurs (~1 s, vehicule a l'arret) |
 | `cote_degage` | aucun, retourne int | 0 = sondage en cours, 1 = gauche, 2 = droite |
-| `definir_reseau` | int, int, int, int | Octets de l'adresse IPv4 affichee dans le code QR |
 
-RPC dans l'autre sens (MCU recoit du MPU) : `on_feu(bool, int, int)` et
-`definir_reseau(int, int, int, int)`. L'ecart de
+RPC dans l'autre sens (MCU recoit du MPU) : `on_feu(bool, int, int)`. L'ecart de
 ligne n'est pas transmis au MCU : le suivi de ligne est calcule sur le MPU, qui
 n'envoie que la consigne de vitesse par `roues`.
 
@@ -853,7 +829,8 @@ rayon de virage se resserre legerement a pleins gaz.
 | `FEU_AGE_MAX_MS` | 3000 | Peremption d'une detection de feu |
 | `LUMINOSITE_BANDEAU` | 255 | Gain global des bandeaux, voir le bilan de courant |
 | `RESEAU_SSID` | `"VTA"` | Doit correspondre a la commande `nmcli` du deploiement |
-| `RESEAU_MOT_DE_PASSE` | `"vta123"` | Idem |
+| `RESEAU_MOT_DE_PASSE` | `"admin123"` | Idem |
+| `RESEAU_IP` | `"10.42.0.1"` | Defaut de NetworkManager en mode partage |
 | `NOM_COURT` | `"VTA"` | Titre affiche a l'ecran, le nom complet n'y tient pas |
 
 Le train d'impulsions du servo **s'arrete** une fois la position tenue. A l'arret,
@@ -877,10 +854,8 @@ Sans signal, le reducteur maintient l'angle, la charge du support etant faible.
 | `THREADS_ORT` | `vision.py` | 2 | Threads laisses a ONNX Runtime |
 | `ROI_HAUT_LIGNES` | `vision.py` | 0.60 | Haut du ROI de ligne, donc les 40 % du bas |
 | `PIXELS_MIN_LIGNE` | `vision.py` | 800 | En deca, aucune ligne n'est declaree |
-| `PERIODE_RESEAU` | `serveur_web.py` | 30.0 | Republication de l'adresse vers l'ecran (s) |
-| `IP_FORCEE` | `reseau.py` | vide | Surcharge par la variable d'environnement `VTA_IP` |
 
-`CHEMIN_MODELE`, `TAILLE_INFERENCE`, `THREADS_ORT` et `VTA_IP` sont surchargeables par
+`CHEMIN_MODELE`, `TAILLE_INFERENCE` et `THREADS_ORT` sont surchargeables par
 variable d'environnement, ce qui permet d'essayer un autre export du modele sans
 toucher au code.
 

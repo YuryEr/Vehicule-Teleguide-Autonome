@@ -98,9 +98,7 @@ void setup() {
     Imu_Calibrer();
     Leds_Initialiser();
     Ecran_Initialiser();
-    // La page de connexion attend l'adresse IP du MPU : elle depend du
-    // reseau rejoint, que le MCU n'a aucun moyen de connaitre.
-    Ecran_AfficherAttente();
+    Ecran_AfficherConnexion(RESEAU_SSID, RESEAU_MOT_DE_PASSE, RESEAU_IP);
     Ultrason_Initialiser();
     Lidar_Initialiser();
     ServoLidar_Initialiser();
@@ -132,7 +130,6 @@ void loop() {
     // direction du clignotant leur est fournie ici.
     Leds_DefinirVirage(Deplacement_DirectionVirage());
     Leds_MettreAJour();
-    Ecran_MettreAJour();
     Ultrason_MettreAJour();
     Lidar_MettreAJour();
     ServoLidar_MettreAJour();

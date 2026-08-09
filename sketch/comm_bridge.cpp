@@ -1,8 +1,6 @@
 #include "comm_bridge.h"
 #include "config.h"
-#include "ecran.h"
 #include "Arduino_RouterBridge.h"
-#include <stdio.h>
 
 static volatile bool          feuPresent   = false;
 static volatile int           couleurFeu   = COULEUR_AUCUNE;
@@ -15,19 +13,9 @@ static void on_feu(bool present, int couleur, int confiance) {
     tDernierFeu = millis();
 }
 
-// L'adresse arrive en quatre entiers plutot qu'en chaine. Le transport du
-// Bridge est eprouve pour les entiers dans ce projet, et une adresse IPv4 se
-// reconstitue sans perte a partir de ses octets.
-static void on_reseau(int a, int b, int c, int d) {
-    char ip[16];
-    snprintf(ip, sizeof(ip), "%d.%d.%d.%d", a, b, c, d);
-    Ecran_DefinirAdresse(ip);
-}
-
 void CommBridge_Initialiser(void) {
     Bridge.begin();
     Bridge.provide_safe("on_feu", on_feu);
-    Bridge.provide_safe("definir_reseau", on_reseau);
 }
 
 bool CommBridge_EstFeuPresent(void) {

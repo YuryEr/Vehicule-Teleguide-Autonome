@@ -145,29 +145,3 @@ void Ecran_AfficherConnexion(const char *ssid, const char *mdp,
     ecrireCentre(adresse, ECRAN_LARGEUR / 2, LIGNE_INFOS + 2 * INTERLIGNE,
                  1, COULEUR_TEXTE);
 }
-
-// ======================== Adresse fournie par le MPU ========================
-
-static char adresseIp[16]  = "";
-static bool adresseChangee = false;
-
-void Ecran_DefinirAdresse(const char *ip) {
-    if (ip == NULL) return;
-    // Le MPU republie l'adresse a cadence lente pour survivre a un reset du
-    // MCU. Sans cette comparaison, chaque envoi redessinerait la page.
-    if (strcmp(ip, adresseIp) == 0) return;
-
-    strncpy(adresseIp, ip, sizeof(adresseIp) - 1);
-    adresseIp[sizeof(adresseIp) - 1] = '\0';
-    adresseChangee = true;
-}
-
-// Le trace occupe le SPI plusieurs dizaines de millisecondes. Il a lieu ici,
-// dans loop(), et non dans le gestionnaire RPC : bloquer le Bridge le temps
-// d'un rendu est exactement ce qui l'avait deja fait mourir sous les traces
-// serie.
-void Ecran_MettreAJour(void) {
-    if (!adresseChangee) return;
-    adresseChangee = false;
-    Ecran_AfficherConnexion(RESEAU_SSID, RESEAU_MOT_DE_PASSE, adresseIp);
-}

@@ -142,11 +142,15 @@
 #define QR_ZONE_SILENCE      4     // marge blanche en modules, exigee par la norme
 
 // Point d'acces WiFi cree sur le MPU (voir le guide de deploiement du README).
-// Ces deux valeurs doivent correspondre a la commande nmcli qui cree le point
-// d'acces : elles ne sont pas decouvertes, elles sont choisies. Seule l'adresse
-// IP est transmise par le MPU, etant la seule a varier d'un reseau a l'autre.
+// Les trois valeurs sont fixees par la commande nmcli, elles ne sont pas
+// decouvertes. En mode partage, NetworkManager attribue 10.42.0.1 a l'interface
+// et distribue le reste du sous-reseau 10.42.0.0/24 aux clients : l'adresse est
+// donc une consequence de la commande, au meme titre que le SSID.
+// Ces valeurs ne tiennent que si la carte cree son reseau. Si elle en rejoint
+// un, l'adresse vient d'un DHCP et doit etre relevee puis reportee ici.
 #define RESEAU_SSID           "VTA"
-#define RESEAU_MOT_DE_PASSE   "vta123"
+#define RESEAU_MOT_DE_PASSE   "admin123"
+#define RESEAU_IP             "10.42.0.1"
 
 // Nom court affiche a l'ecran. La dalle fait 320 pixels de large : le nom
 // complet du projet n'y tient pas a une taille lisible.
