@@ -191,15 +191,24 @@
 // depasse l'obstacle, puis une diagonale de retour vers la ligne.
 //
 //                   EVITEMENT_LONGEMENT_M
-//                  +---------------+           segment parallele a la ligne
-//                 /                 \  <-- EVITEMENT_ANGLE_DEG aux 4 sommets
-//    ____________/    [obstacle]     \_______  ligne suivie
+//                  +---------------+       segment parallele a la ligne
+//                 /                 \      angles 1 et 2 : ANGLE_DEG
+//    ____________/    [obstacle]     \___  angle 3 : ANGLE_RETOUR_DEG
+//         ligne suivie
 //
 // L'ecart lateral obtenu vaut EVITEMENT_DISTANCE_M multiplie par le sinus de
-// l'angle : il doit depasser le demi-encombrement de l'obstacle, sans quoi le
-// segment parallele le percute. Le segment parallele doit lui-meme depasser la
-// profondeur de l'obstacle avant que le vehicule ne se reoriente vers la ligne.
-#define EVITEMENT_ANGLE_DEG         45    // angle de chaque rotation (deg)
+// l'angle d'ecartement : il doit depasser le demi-encombrement de l'obstacle,
+// sans quoi le segment parallele le percute. Le segment parallele doit lui-meme
+// depasser la profondeur de l'obstacle avant la reorientation vers la ligne.
+//
+// L'angle de retour est plus faible que celui d'ecartement, et pour une raison
+// qui n'a rien de geometrique : a 45 degres la ligne sort du champ de la camera
+// avant d'etre recroisee, et le suivi s'arrete sans jamais la retrouver. Un
+// angle plus ouvert la garde en vue, au prix d'une approche plus longue. La
+// distance parcourue avant de la recroiser vaut l'ecart lateral divise par le
+// sinus de cet angle, soit environ 93 cm a 20 degres contre 45 cm a 45 degres.
+#define EVITEMENT_ANGLE_DEG         45    // rotations d'ecartement et de remise (deg)
+#define EVITEMENT_ANGLE_RETOUR_DEG  20    // rotation finale, vers la ligne (deg)
 #define EVITEMENT_DISTANCE_M        0.45  // diagonale d'ecartement (m)
 #define EVITEMENT_LONGEMENT_M       0.20  // segment parallele a la ligne (m)
 #define EVITEMENT_ESSAIS_MAX        3     // rotations avant d'abandonner

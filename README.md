@@ -477,8 +477,9 @@ vers la ligne.
 
                        EVITEMENT_LONGEMENT_M
                       +---------------+           segment parallele a la ligne
-                     /                 \  <-- EVITEMENT_ANGLE_DEG aux 4 sommets
-        ____________/    [obstacle]     \_______  ligne suivie
+                     /                 \      angles 1 et 2 : ANGLE_DEG
+        ____________/    [obstacle]     \___  angle 3 : ANGLE_RETOUR_DEG
+             ligne suivie
 
     REPOS
       | obstacle detecte en mode autonome
@@ -498,7 +499,7 @@ vers la ligne.
     PAUSE --> AVANCE_PARALLELE    avance de EVITEMENT_LONGEMENT_M
       |
       v
-    PAUSE --> ROTATION_RETOUR     un cran de plus, cap dirige vers la ligne
+    PAUSE --> ROTATION_RETOUR     EVITEMENT_ANGLE_RETOUR_DEG vers la ligne
       |
       v
     REPOS                         le suivi de ligne reprend la main
@@ -511,9 +512,21 @@ superposent.
 **Les trois rotations ne sont pas dans le meme sens.** La premiere ecarte de la
 ligne, du cote retenu par le sondage. Les deux suivantes vont a l'oppose : la
 deuxieme rend exactement l'angle d'ecartement et remet le cap d'origine, la
-troisieme ajoute un cran de plus et dirige le vehicule vers la ligne, qu'il
-recroise. Sans cette troisieme rotation, il roulerait parallelement a la ligne
-sans jamais la revoir et le suivi s'arreterait apres `MISS_MAX` cycles.
+troisieme dirige le vehicule vers la ligne, qu'il recroise. Sans cette troisieme
+rotation, il roulerait parallelement a la ligne sans jamais la revoir et le
+suivi s'arreterait apres `MISS_MAX` cycles.
+
+**La rotation de retour est plus faible que celle d'ecartement**, et pour une
+raison qui n'a rien de geometrique : a 45 degres la ligne sort du champ de la
+camera avant d'etre recroisee, et le suivi s'arrete sans jamais la retrouver.
+A 20 degres elle reste en vue, au prix d'une approche plus longue.
+
+| Angle de retour | Distance parcourue avant de recroiser la ligne |
+|---|---|
+| 45 degres | 45 cm, mais ligne hors du champ |
+| 30 degres | 64 cm |
+| **20 degres** | **93 cm, valeur retenue** |
+| 15 degres | 123 cm |
 
 **La deuxieme rotation rend l'angle cumule, pas une valeur fixe.** Si la voie
 reste bloquee apres la premiere rotation, un cran supplementaire est ajoute,
@@ -521,7 +534,9 @@ jusqu'a `EVITEMENT_ESSAIS_MAX` fois. La remise parallele doit alors annuler le
 total, sans quoi le segment cense etre parallele partirait de travers.
 
 **Dimensionnement.** L'ecart lateral obtenu vaut `EVITEMENT_DISTANCE_M` multiplie
-par le sinus de l'angle, soit 32 cm pour 45 cm a 45 degres. Il doit depasser le
+par le sinus de l'angle d'ecartement, soit 32 cm pour 45 cm a 45 degres. Noter
+que la constante decrit la distance **parcourue** sur la diagonale, pas l'ecart
+obtenu. Il doit depasser le
 demi-encombrement de l'obstacle, sans quoi le segment parallele le percute. Le
 segment parallele doit lui-meme depasser la profondeur de l'obstacle avant que le
 vehicule ne se reoriente vers la ligne.
@@ -763,7 +778,8 @@ rayon de virage se resserre legerement a pleins gaz.
 | `OBSTACLE_ECART_SONDAGE_DEG` | 45 | Ecart des secteurs lateraux sondes |
 | `OBSTACLE_SENS_SERVO` | -1 | -1 si gauche et droite sont inverses mecaniquement |
 | `OBSTACLE_STABILISATION_MS` | 40 | Attente apres l'arrivee du servo, avant la mesure |
-| `EVITEMENT_ANGLE_DEG` | 45 | Angle de chacune des trois rotations |
+| `EVITEMENT_ANGLE_DEG` | 45 | Rotations d'ecartement et de remise parallele |
+| `EVITEMENT_ANGLE_RETOUR_DEG` | 20 * | Rotation finale vers la ligne. Plus faible pour la garder dans le champ de la camera |
 | `EVITEMENT_DISTANCE_M` | 0.45 | Diagonale d'ecartement, donne 32 cm d'ecart lateral |
 | `EVITEMENT_LONGEMENT_M` | 0.20 | Segment parallele a la ligne, doit depasser l'obstacle |
 | `EVITEMENT_PAUSE_MS` | 400 | Immobilisation entre deux etapes |

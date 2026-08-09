@@ -80,7 +80,9 @@ static void entrerEtape(EtatEvitement etape) {
         case ROTATION_RETOUR:
             // Un cran de plus dans le meme sens : le vehicule quitte le cap
             // parallele et repart en diagonale vers la ligne, qu'il recroise.
-            tournerVersLigne(EVITEMENT_ANGLE_DEG);
+            // L'angle est plus faible que celui d'ecartement pour garder la
+            // ligne dans le champ de la camera pendant l'approche.
+            tournerVersLigne(EVITEMENT_ANGLE_RETOUR_DEG);
             break;
         default:
             break;
