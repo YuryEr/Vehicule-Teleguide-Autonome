@@ -77,8 +77,6 @@
 // soit facteur = 1 - EXPO, ou facteur = 1 redonne la reponse lineaire.
 #define VITESSE_MANUEL          80    // avance et recul, joystick a fond
 #define VITESSE_ROTATION_MANUEL 50    // rotation gauche et droite
-#define EXPO_MANUEL             0.6f  // 0 = lineaire, 1 = tres adouci au centre
-#define EXPO_ROTATION_MANUEL    0.2f  // expo direction : 0 = lineaire (tres reactif)
 
 // Compensation de l'inertie de fin de rotation, valeurs retenues pour
 // VITESSE_ROTATION = 11. Toute modification de cette vitesse impose de les
