@@ -1,8 +1,18 @@
 """
-Pipeline de vision — TankETS
+Pipeline de vision, TankETS
 =============================
-Orchestre les detections a cadences independantes avec anti-rebond.
-Decouple : recoit des callbacks, ne connait pas Bridge.
+Detections routieres avec anti-rebond.
+
+Les deux traitements sont exposes separement et n'ont aucune cadence propre :
+c'est l'appelant qui les appelle a son rythme. Les partager dans un meme appel
+asservirait le suivi de ligne, qui coute quelques millisecondes et pilote le
+vehicule, a l'inference des feux, qui coute plusieurs centaines de
+millisecondes. La cadence de correction dependrait alors du cout de la vision.
+
+Cette classe s'execute dans un thread du pool, ou toucher aux sockets eventlet
+ou au Bridge corromprait leur etat. Elle ne diffuse donc rien elle-meme : elle
+retourne ce qu'il y a a emettre, et c'est l'appelant, dans sa greenlet, qui le
+dispatche.
 """
 
 import time
@@ -21,25 +31,14 @@ RAFRAICHISSEMENT_S       = 0.5
 # ======================== Classe principale ========================
 
 class BoucleVision:
-    """Machine a etats pour la detection routiere.
+    """Machine a etats pour la detection routiere."""
 
-    sur_changement_feu(present, couleur, confiance) — appele quand
-        l'etat du feu change (apparition, disparition, changement couleur).
-    sur_lignes_detectees(detecte, ecart) — appele a chaque cycle lignes.
-    """
-
-    def __init__(self, sur_changement_feu, sur_lignes_detectees):
-        self._sur_feu    = sur_changement_feu
-        self._sur_lignes = sur_lignes_detectees
-
+    def __init__(self):
         self._hits             = 0
         self._misses           = 0
         self._feu_present      = False
         self._derniere_couleur = vision.COULEUR_AUCUNE
         self._dernier_envoi    = 0.0
-
-        self._t_inference = 0.0
-        self._t_lignes    = 0.0
 
         self._fps_t0 = time.time()
         self._fps_n  = 0
@@ -52,27 +51,21 @@ class BoucleVision:
     def derniere_couleur(self):
         return self._derniere_couleur
 
-    def traiter(self, frame):
-        """Traite une frame. Appeler a chaque iteration de la boucle."""
-        now = time.time()
+    def traiter_lignes(self, frame):
+        """Detecte la ligne et retourne (detecte, ecart).
 
-        self._traiter_lignes(frame, now)
-        self._traiter_feux(frame, now)
-        self._traiter_telemetrie(now)
+        Cadence pilotee par l'appelant : elle ne doit dependre que de la
+        boucle de suivi, jamais du cout de l'inference.
+        """
+        self._compter_cadence()
+        return vision.detecter_lignes(frame)
 
-    def _traiter_lignes(self, frame, now):
-        if now - self._t_lignes < PERIODE_LIGNES:
-            return
-        self._t_lignes = now
+    def traiter_feux(self, frame):
+        """Detecte les feux.
 
-        detecte, ecart = vision.detecter_lignes(frame)
-        self._sur_lignes(detecte, ecart)
-
-    def _traiter_feux(self, frame, now):
-        if now - self._t_inference < PERIODE_INFERENCE:
-            return
-        self._t_inference = now
-
+        Retourne (present, couleur, confiance_pourcent) quand l'etat du feu
+        change, None sinon. Cadence pilotee par l'appelant.
+        """
         detections = vision.detecter_feux(frame)
         nombre    = len(detections)
         confiance = 0.0
@@ -94,41 +87,50 @@ class BoucleVision:
             self._misses += 1
             self._hits    = 0
 
-        self._evaluer_etat_feu(couleur, confiance, now)
+        return self._evaluer_etat_feu(couleur, confiance, time.time())
 
     def _evaluer_etat_feu(self, couleur, confiance, now):
+        """Retourne la notification a diffuser, ou None si rien n'a change."""
         if not self._feu_present and self._hits >= REBOND_ACTIVATION:
             self._feu_present      = True
             self._derniere_couleur = couleur
-            self._sur_feu(True, couleur, int(confiance * 100))
-            self._dernier_envoi = now
+            self._dernier_envoi    = now
             print(f"[feu] DETECTE "
                   f"{vision.NOMS_COULEURS[couleur]} "
                   f"({confiance:.2f})")
+            return (True, couleur, int(confiance * 100))
 
-        elif (self._feu_present
-              and self._misses >= REBOND_DESACTIVATION):
+        if (self._feu_present
+                and self._misses >= REBOND_DESACTIVATION):
             self._feu_present      = False
             self._derniere_couleur = vision.COULEUR_AUCUNE
-            self._sur_feu(False, vision.COULEUR_AUCUNE, 0)
-            self._dernier_envoi = now
+            self._dernier_envoi    = now
             print("[feu] perdu")
+            return (False, vision.COULEUR_AUCUNE, 0)
 
-        elif (self._feu_present
-              and self._hits > 0
-              and (couleur != self._derniere_couleur
-                   or now - self._dernier_envoi >= RAFRAICHISSEMENT_S)):
+        if (self._feu_present
+                and self._hits > 0
+                and (couleur != self._derniere_couleur
+                     or now - self._dernier_envoi >= RAFRAICHISSEMENT_S)):
             self._derniere_couleur = couleur
-            self._sur_feu(True, couleur, int(confiance * 100))
-            self._dernier_envoi = now
+            self._dernier_envoi    = now
+            return (True, couleur, int(confiance * 100))
 
-    def _traiter_telemetrie(self, now):
+        return None
+
+    def _compter_cadence(self):
+        """Trace la cadence reelle du suivi de ligne.
+
+        C'est le nombre de corrections que le vehicule applique par seconde :
+        la grandeur qui conditionne le reglage du correcteur.
+        """
         self._fps_n += 1
+        now = time.time()
         if now - self._fps_t0 < 5.0:
             return
-        fps = self._fps_n / (now - self._fps_t0)
+        cadence = self._fps_n / (now - self._fps_t0)
         print(
-            f"[perf] {fps:.1f} FPS | "
+            f"[perf] lignes {cadence:.1f} Hz | "
             f"feu={self._feu_present} "
             f"couleur={vision.NOMS_COULEURS[self._derniere_couleur]}"
         )

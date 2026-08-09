@@ -1,5 +1,5 @@
 /*
- * Style — Interface web de contrôle TankETS
+ * Style : Interface web de contrôle TankETS
  * PFE ELE795 - ETS - Ete 2026
  *
  * Sources :
@@ -111,7 +111,7 @@ body {
 }
 
 /* ----------------------------------------------------------------
-   COLONNE GAUCHE — Boutons
+   COLONNE GAUCHE : Boutons
 ---------------------------------------------------------------- */
 .colonne-gauche {
     display: flex;
@@ -189,7 +189,7 @@ body {
 .btn-camera-on:hover  { background-color: #D0ECEC; }
 
 /* ----------------------------------------------------------------
-   MODES LED — badges
+   MODES LED : badges
 ---------------------------------------------------------------- */
 .mode-led-eteint     { background: #F0F0F0; color: #888;    border-color: #CCC;    }
 .mode-led-gyrophare  { background: #EEE8FF; color: #5500CC; border-color: #C0A0FF; }
@@ -197,7 +197,7 @@ body {
 .mode-led-phares     { background: #FFFFF0; color: #808040; border-color: #E0E080; }
 
 /* ----------------------------------------------------------------
-   CENTRE — Flux video
+   CENTRE : Flux video
 ---------------------------------------------------------------- */
 .container-video {
     flex: 1;
@@ -232,7 +232,7 @@ body {
 }
 
 /* ----------------------------------------------------------------
-   COLONNE DROITE — Joystick
+   COLONNE DROITE : Joystick
 ---------------------------------------------------------------- */
 .colonne-droite { width: 220px; flex-shrink: 0; }
 

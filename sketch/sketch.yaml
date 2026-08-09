@@ -8,4 +8,5 @@ profiles:
       - Adafruit GFX Library (1.12.6)
       - Adafruit ILI9341 (1.6.3)
       - Adafruit BusIO (1.17.4)
+      - QRCode (0.0.1)
 default_profile: default

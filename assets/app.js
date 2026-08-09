@@ -1,5 +1,5 @@
 /*
- * app.js — Logique interface web TankETS
+ * app.js : Logique interface web TankETS
  * PFE ELE795 - ETS - Ete 2026
  *
  * Sources :
@@ -60,7 +60,7 @@ function afficherOnglet(nom) {
 
 
 // ================================================================
-// BLOCKLY — Definition des blocs personnalises
+// BLOCKLY : Definition des blocs personnalises
 // ================================================================
 let workspace = null;
 
@@ -172,13 +172,13 @@ if (typeof Blockly !== 'undefined') {
 
 } else {
     document.getElementById('blockly-div').innerHTML =
-        '<p style="padding:20px;color:#b00020;">Blockly non charge — ' +
+        '<p style="padding:20px;color:#b00020;">Blockly non charge, ' +
         'verifiez que les fichiers sont dans libs/blockly/</p>';
 }
 
 
 // ================================================================
-// BLOCKLY — Extraction et execution de la sequence
+// BLOCKLY : Extraction et execution de la sequence
 // ================================================================
 function extraireSequence() {
     const sequence = [];
@@ -228,7 +228,7 @@ function executerBlocs() {
     const sequence = extraireSequence();
     if (sequence.length === 0) {
         document.getElementById('sequence-statut').textContent =
-            'Aucun bloc — glissez des blocs depuis la barre laterale';
+            'Aucun bloc, glissez des blocs depuis la barre laterale';
         return;
     }
     socket.emit('executer_sequence', { sequence: sequence });
@@ -249,7 +249,7 @@ socket.on('sequence_status', (data) => {
     const btnStop     = document.getElementById('btn-stop');
 
     if (data.etat === 'en_cours') {
-        statut.textContent = `${data.index}/${data.total} — ${data.description}`;
+        statut.textContent = `${data.index}/${data.total} : ${data.description}`;
         btnExecuter.disabled = true;
         btnStop.disabled     = false;
     } else if (data.etat === 'terminee') {
@@ -295,7 +295,7 @@ chargerVideo();
 // ================================================================
 // MODE DE CONDUITE
 // ================================================================
-const MODES = ["manuel", "semi-autonome", "autonome"];
+const MODES = ["manuel", "autonome"];
 let indexMode = 0;
 
 function changerMode() {

@@ -26,10 +26,6 @@ static unsigned long tArrivee         = 0;
 static unsigned long tRetourAxe       = 0;
 static int           distanceFrontale = ULTRASON_DISTANCE_MAX;
 
-static bool          sondageAuto      = true;
-static bool          detectePrecedent = false;
-static unsigned long tDernierSondage  = 0;
-
 // ======================== Distance frontale ========================
 
 // Ramene une mesure au pare-choc avant, reference commune aux deux capteurs.
@@ -102,17 +98,6 @@ void Obstacle_MettreAJour(void) {
         evaluerFrontal();
     }
 
-    // Front montant de la detection : le LiDAR part chercher de quel cote
-    // contourner. La temporisation empeche une mesure instable autour du
-    // seuil de relancer le servo en continu.
-    bool detecte = Obstacle_EstDetecte();
-    if (sondageAuto && detecte && !detectePrecedent
-        && (maintenant - tDernierSondage) >= OBSTACLE_RELANCE_MIN_MS) {
-        tDernierSondage = maintenant;
-        Obstacle_LancerSondage();
-    }
-    detectePrecedent = detecte;
-
     switch (etat) {
 
         case INACTIF:
@@ -168,8 +153,6 @@ int Obstacle_DistanceSecteur(int secteur) {
     if (secteur < 0 || secteur >= NB_SECTEURS) return -1;
     return distancesSecteurs[secteur];
 }
-
-void Obstacle_DefinirSondageAuto(bool actif) { sondageAuto = actif; }
 
 int Obstacle_CoteLePlusDegage(void) {
     return (degagementSecteur(SECTEUR_GAUCHE)

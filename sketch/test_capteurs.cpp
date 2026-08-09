@@ -3,6 +3,7 @@
 #include "lidar.h"
 #include "servo_lidar.h"
 #include "obstacle.h"
+#include "moteurs.h"
 
 #ifdef TEST_CAPTEURS_ACTIF
 
@@ -49,6 +50,29 @@ void TestCapteurs_MettreAJour(void) {
         else              Serial.print(distance);
     }
     Serial.println();
+
+    // Chaque moteur separement : compteur cumule, et entre parentheses sa
+    // variation depuis le releve precedent. C'est cette variation qui compte
+    // pour juger d'une derive : elle donne la vitesse instantanee de chaque
+    // chenille, la ou le cumul porte encore la trace des mouvements passes.
+    static int32_t encGauchePrec = 0;
+    static int32_t encDroitPrec  = 0;
+
+    int32_t encGauche = Moteurs_LireEncodeurGauche();
+    int32_t encDroit  = Moteurs_LireEncodeurDroit();
+
+    Serial.print("[moteurs] gauche = ");
+    Serial.print(encGauche);
+    Serial.print(" (");
+    Serial.print(encGauche - encGauchePrec);
+    Serial.print(") | droite = ");
+    Serial.print(encDroit);
+    Serial.print(" (");
+    Serial.print(encDroit - encDroitPrec);
+    Serial.println(")");
+
+    encGauchePrec = encGauche;
+    encDroitPrec  = encDroit;
 }
 
 #else
