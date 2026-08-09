@@ -76,7 +76,7 @@
 // Les emetteurs expriment le meme melange par le coefficient complementaire,
 // soit facteur = 1 - EXPO, ou facteur = 1 redonne la reponse lineaire.
 #define VITESSE_MANUEL          80    // avance et recul, joystick a fond
-#define VITESSE_ROTATION_MANUEL 50    // rotation gauche et droite
+#define VITESSE_ROTATION_MANUEL 30    // rotation gauche et droite
 
 // Compensation de l'inertie de fin de rotation, valeurs retenues pour
 // VITESSE_ROTATION = 11. Toute modification de cette vitesse impose de les
@@ -198,7 +198,7 @@
 #define FEU_AGE_MAX_MS              3000  // au dela, la detection est perimee
 
 // Evitement d'obstacle (contournement lateral)
-#define EVITEMENT_DISTANCE_M        0.30  // longement le long de l'obstacle (m)
+#define EVITEMENT_DISTANCE_M        0.60  // longement le long de l'obstacle (m)
 #define EVITEMENT_ESSAIS_MAX        3     // rotations avant d'abandonner
 
 // Rapport entre la rotation de retour et celle de l'aller. A 1.0 le vehicule
