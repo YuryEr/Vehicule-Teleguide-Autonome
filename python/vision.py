@@ -14,13 +14,15 @@ Bibliotheques :
                     https://numpy.org/
 
 Algorithmes :
-    - Canny Edge Detection
-      Canny, J. (1986). A Computational Approach to Edge Detection.
-      IEEE Trans. PAMI, 8(6), 679-698.
-    - Hough Transform probabiliste
-      Matas, J., Galambos, C., & Kittler, J. (2000).
-      Robust Detection of Lines Using the Progressive Probabilistic
-      Hough Transform. CVIU, 78(1), 119-137.
+    - Seuillage adaptatif gaussien
+      OpenCV documentation, Image Thresholding
+      https://docs.opencv.org/4.x/d7/d4d/tutorial_py_thresholding.html
+    - Moments d'image, calcul du centroide de la ligne
+      Hu, M.-K. (1962). Visual Pattern Recognition by Moment Invariants.
+      IRE Transactions on Information Theory, 8(2), 179-187.
+    - Ouverture morphologique, nettoyage du masque binaire
+      Serra, J. (1982). Image Analysis and Mathematical Morphology.
+      Academic Press.
     - Non-Maximum Suppression
       Neubeck, A., & Van Gool, L. (2006). Efficient Non-Maximum
       Suppression. ICPR 2006.

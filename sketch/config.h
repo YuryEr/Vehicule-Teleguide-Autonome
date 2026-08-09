@@ -67,10 +67,14 @@
 // chenilles, la rotation fait patiner les deux cotes en sens opposes, c'est le
 // mouvement le plus brutal et le plus difficile a doser. Elle est donc
 // volontairement plus lente que la translation.
-// La reponse suit une courbe exponentielle, usage courant en modelisme :
+// La reponse suit une courbe dite exponentielle, pratique etablie sur les
+// emetteurs de radiocommande (EdgeTX User Manual, section Inputs). Le nom est
+// un abus de langage : l'implementation courante est un melange cubique
 //   f(v) = EXPO * v^3 + (1 - EXPO) * v
 // Elle conserve f(0) = 0 et f(1) = 1, et n'ecrase que la pente au centre : a
 // 0.6, le neutre est 2.5 fois moins sensible, sans perte de vitesse maximale.
+// Les emetteurs expriment le meme melange par le coefficient complementaire,
+// soit facteur = 1 - EXPO, ou facteur = 1 redonne la reponse lineaire.
 #define VITESSE_MANUEL          80    // avance et recul, joystick a fond
 #define VITESSE_ROTATION_MANUEL 50    // rotation gauche et droite
 #define EXPO_MANUEL             0.6f  // 0 = lineaire, 1 = tres adouci au centre
