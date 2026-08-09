@@ -31,20 +31,18 @@ static volatile float joystickX = 0.0f;
 void Deplacement_JoystickX(float x) { joystickX = x; }
 
 // Adoucit la reponse autour du neutre sans reduire la pleine echelle.
-// v va de -1 a 1, le retour aussi.
-static float courbeExpo(float v) {
-    return EXPO_MANUEL * v * v * v + (1.0f - EXPO_MANUEL) * v;
+// v va de -1 a 1, le retour aussi. `expo` : 0 = lineaire, 1 = tres adouci au centre.
+static float courbeExpo(float v, float expo) {
+    return expo * v * v * v + (1.0f - expo) * v;
 }
 
 void Deplacement_JoystickY(float y) {
     if (etatMouvement != INACTIF || Securite_ManoeuvreEnCours()) return;
 
-    // L'interface borne la poignee a un cercle : x et y ne peuvent pas valoir 1
-    // simultanement. La somme des deux consignes reste donc sous 100 et
-    // Moteurs_DefinirVitesse n'ecrete jamais, ce qui garde le rayon de virage
-    // constant quels que soient les gaz.
-    float avance   = courbeExpo(y)         * VITESSE_MANUEL;
-    float rotation = courbeExpo(joystickX) * VITESSE_ROTATION_MANUEL;
+    // Expo fort sur les gaz (dosage fin), expo faible sur la direction
+    // (sinon les petits virages sont ecrases et le robot ne tourne pas).
+    float avance   = courbeExpo(y,         EXPO_MANUEL)          * VITESSE_MANUEL;
+    float rotation = courbeExpo(joystickX, EXPO_ROTATION_MANUEL) * VITESSE_ROTATION_MANUEL;
 
     Securite_DefinirVitesse((int)(avance - rotation),
                             (int)(avance + rotation));
