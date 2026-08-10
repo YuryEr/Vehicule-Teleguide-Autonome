@@ -1,4 +1,4 @@
-# 😀 Vehicule teleguide autonome (VTA)
+# Vehicule teleguide autonome (VTA)
 
 PFE ELE795, Ecole de technologie superieure, ete 2026.
 
