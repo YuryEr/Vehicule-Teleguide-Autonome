@@ -1,6 +1,7 @@
 # Vehicule teleguide autonome (VTA)
 
 PFE ELE795, Ecole de technologie superieure, ete 2026.
+Par : Yury Ereshchenko, Yoan Sapet, Vlad Alexandru Ilie, Ryan Leung et Serby Brian Barthelemy
 
 Le sigle **VTA** sert partout ou la place manque : nom du point d'acces WiFi,
 titre a l'ecran embarque, en-tetes des modules.
