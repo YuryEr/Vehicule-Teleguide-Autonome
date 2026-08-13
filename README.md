@@ -937,3 +937,4 @@ toucher au code.
   la duree d'echo en distance.
 - WS2812B Intelligent Control LED, Worldsemi. Protocole a fil unique
   800 kHz, exigence a l'origine de la version imposee de NeoPixel.
+- Fichiers 3D du chassis et du PCB (`hardware/`)
